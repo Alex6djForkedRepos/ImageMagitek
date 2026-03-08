@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ImageMagitek;
 using ImageMagitek.Colors;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
@@ -76,6 +77,16 @@ public partial class GraphicsEditorViewModel
         OnPropertyChanged(nameof(CanRedo));
 
         IsModified = UndoHistory.Count > 0;
+
+        bool needsArrangerReset = lastAction is PasteArrangerHistoryAction { Paste.Copy: ElementCopy }
+            || UndoHistory.Any(a => a is PasteArrangerHistoryAction { Paste.Copy: ElementCopy });
+
+        if (needsArrangerReset)
+        {
+            WorkingArranger = _projectArranger.CloneArranger();
+            _imageAdapter.Reinitialize(WorkingArranger);
+            BitmapAdapter = _imageAdapter.CreateBitmapAdapter();
+        }
 
         ReloadImage();
 
