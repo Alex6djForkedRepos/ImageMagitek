@@ -65,7 +65,10 @@ public class ElementSelectToolHandler : IToolHandler<GraphicsEditorViewModel>
             return ToolResult.HandledNoInvalidation;
         }
 
-        state.UpdateActivityMessage(ctx.PixelX, ctx.PixelY);
+        if (state.EditMode == GraphicsEditMode.Arrange)
+            state.InspectElementAtPosition(ctx.PixelX, ctx.PixelY);
+        else
+            state.UpdateActivityMessage(ctx.PixelX, ctx.PixelY);
         return ToolResult.HandledNoInvalidation;
     }
 
