@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Xaml.Interactions.DragAndDrop;
 using ImageMagitek;
+using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
 using TileShop.UI.Controls;
 using TileShop.UI.Features.Graphics;
@@ -25,6 +26,10 @@ public class ArrangerDropHandler : DropHandlerBase
                 return;
 
             targetVm.Paste = paste;
+
+            paste.SnapMode = targetVm.EditMode == GraphicsEditMode.Arrange
+                ? SnapMode.Element
+                : SnapMode.Pixel;
 
             var screenPos = e.GetPosition(control);
             var p = control is InfiniteCanvas canvas
