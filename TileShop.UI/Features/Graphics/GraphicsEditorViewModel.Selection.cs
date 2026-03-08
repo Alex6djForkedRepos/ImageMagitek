@@ -94,7 +94,11 @@ public partial class GraphicsEditorViewModel
         CancelOverlay();
 
         var paste = new ArrangerPaste(_clipboard, SnapMode);
-        paste.Rect.MoveTo(0, 0);
+
+        if (IsDrawMode && IsDrawClipActive && DrawClipRect is { } clip)
+            paste.Rect.MoveTo(clip.SnappedLeft, clip.SnappedTop);
+        else
+            paste.Rect.MoveTo(0, 0);
 
         Paste = paste;
         PendingOperationMessage = "Press [Enter] to Apply Paste or [Esc] to Cancel";
@@ -312,6 +316,19 @@ public partial class GraphicsEditorViewModel
         }
 
         InvalidateEditor(InvalidationLevel.Overlay);
+    }
+
+    internal void ClampPastePositionToDrawClip()
+    {
+        if (Paste is null || !IsDrawMode || !IsDrawClipActive || DrawClipRect is not { } clip)
+            return;
+
+        var rect = Paste.Rect;
+        int x = Math.Clamp(rect.SnappedLeft, clip.SnappedLeft - rect.SnappedWidth + 1, clip.SnappedRight - 1);
+        int y = Math.Clamp(rect.SnappedTop, clip.SnappedTop - rect.SnappedHeight + 1, clip.SnappedBottom - 1);
+
+        if (x != rect.SnappedLeft || y != rect.SnappedTop)
+            rect.MoveTo(x, y);
     }
 
     private (double x, double y) ClampToSelectionBounds(double x, double y)

@@ -36,6 +36,7 @@ public class ArrangerDropHandler : DropHandlerBase
                 ? canvas.ScreenToLocalPoint(screenPos)
                 : screenPos;
             targetVm.Paste.MoveTo((int)p.X, (int)p.Y);
+            targetVm.ClampPastePositionToDrawClip();
             targetVm.InvalidateEditor(InvalidationLevel.Overlay);
 
             e.Handled = true;
