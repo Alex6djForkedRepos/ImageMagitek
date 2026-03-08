@@ -23,9 +23,22 @@ public partial class GraphicsEditorViewModel
     public void SelectAll()
     {
         CancelOverlay();
+
+        double left = 0, top = 0;
+        double right = WorkingArranger.ArrangerPixelSize.Width;
+        double bottom = WorkingArranger.ArrangerPixelSize.Height;
+
+        if (IsDrawMode && IsDrawClipActive && DrawClipRect is { } clip)
+        {
+            left = clip.SnappedLeft;
+            top = clip.SnappedTop;
+            right = clip.SnappedRight;
+            bottom = clip.SnappedBottom;
+        }
+
         Selection = new ArrangerSelection(WorkingArranger, SnapMode);
-        Selection.StartSelection(0, 0);
-        Selection.UpdateSelectionEndpoint(WorkingArranger.ArrangerPixelSize.Width, WorkingArranger.ArrangerPixelSize.Height);
+        Selection.StartSelection(left, top);
+        Selection.UpdateSelectionEndpoint(right, bottom);
         CompleteSelection();
         OnPropertyChanged(nameof(CanEditSelection));
         OnPropertyChanged(nameof(CanSetDrawClipFromSelection));
@@ -160,6 +173,7 @@ public partial class GraphicsEditorViewModel
 
     public void StartNewSelection(double x, double y)
     {
+        (x, y) = ClampToSelectionBounds(x, y);
         Selection.StartSelection(x, y);
         IsSelecting = true;
     }
@@ -176,6 +190,7 @@ public partial class GraphicsEditorViewModel
         }
 
         CancelOverlay();
+        (x, y) = ClampToSelectionBounds(x, y);
         Selection.StartSelection(x, y);
         IsSelecting = true;
         return true;
@@ -185,6 +200,7 @@ public partial class GraphicsEditorViewModel
     {
         if (IsSelecting)
         {
+            (x, y) = ClampToSelectionBounds(x, y);
             Selection.UpdateSelectionEndpoint(x, y);
             InvalidateEditor(InvalidationLevel.Overlay);
         }
@@ -260,6 +276,7 @@ public partial class GraphicsEditorViewModel
         if (!IsResizing || ActiveResizeHandle == SelectionHandle.None)
             return;
 
+        (x, y) = ClampToSelectionBounds(x, y);
         var rect = Selection.SelectionRect;
 
         switch (ActiveResizeHandle)
@@ -295,6 +312,23 @@ public partial class GraphicsEditorViewModel
         }
 
         InvalidateEditor(InvalidationLevel.Overlay);
+    }
+
+    private (double x, double y) ClampToSelectionBounds(double x, double y)
+    {
+        double minX = 0, minY = 0;
+        double maxX = WorkingArranger.ArrangerPixelSize.Width;
+        double maxY = WorkingArranger.ArrangerPixelSize.Height;
+
+        if (IsDrawMode && IsDrawClipActive && DrawClipRect is { } clip)
+        {
+            minX = clip.SnappedLeft;
+            minY = clip.SnappedTop;
+            maxX = clip.SnappedRight;
+            maxY = clip.SnappedBottom;
+        }
+
+        return (Math.Clamp(x, minX, maxX), Math.Clamp(y, minY, maxY));
     }
 
     public void CompleteResize()
