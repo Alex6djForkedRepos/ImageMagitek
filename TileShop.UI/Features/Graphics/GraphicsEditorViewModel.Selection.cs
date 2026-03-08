@@ -68,6 +68,16 @@ public partial class GraphicsEditorViewModel
         if (_clipboard is null)
             return;
 
+        bool isElementPasteInArrangeMode = _clipboard is ElementCopy
+            && EditMode == GraphicsEditMode.Arrange
+            && IsTiledLayout
+            && WorkingArranger is ScatteredArranger;
+
+        if (!isElementPasteInArrangeMode && EditMode != GraphicsEditMode.Draw)
+        {
+            EditMode = GraphicsEditMode.Draw;
+        }
+
         CancelOverlay();
 
         var paste = new ArrangerPaste(_clipboard, SnapMode);
