@@ -85,6 +85,8 @@ public class ArrangerDragHandler : IDragHandlerEx
 
             vm.Paste.DeltaX = (int)pos2.X - vm.Paste.Rect.SnappedLeft;
             vm.Paste.DeltaY = (int)pos2.Y - vm.Paste.Rect.SnappedTop;
+
+            Payload = vm.Paste;
         }
     }
 }

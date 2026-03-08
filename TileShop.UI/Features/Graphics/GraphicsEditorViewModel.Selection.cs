@@ -6,12 +6,15 @@ using ImageMagitek;
 using TileShop.Shared.Messages;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
+using TileShop.UI.Models;
 
 namespace TileShop.UI.ViewModels;
 
 public partial class GraphicsEditorViewModel
 {
     private const double _handleScreenSize = 8.0;
+
+    private static ArrangerCopy? _clipboard;
 
     [ObservableProperty] private SelectionHandle _activeResizeHandle = SelectionHandle.None;
     [ObservableProperty] private bool _isResizing;
@@ -27,6 +30,51 @@ public partial class GraphicsEditorViewModel
         OnPropertyChanged(nameof(CanEditSelection));
         OnPropertyChanged(nameof(CanSetDrawClipFromSelection));
         OnPropertyChanged(nameof(CanAddSelectionAsScatteredArranger));
+        InvalidateEditor(InvalidationLevel.Overlay);
+    }
+
+    [RelayCommand]
+    public void CopySelection()
+    {
+        if (!Selection.HasSelection)
+            return;
+
+        var rect = Selection.SelectionRect;
+        var arranger = WorkingArranger;
+
+        if (SnapMode == SnapMode.Element)
+        {
+            int x = rect.SnappedLeft / arranger.ElementPixelSize.Width;
+            int y = rect.SnappedTop / arranger.ElementPixelSize.Height;
+            int width = rect.SnappedWidth / arranger.ElementPixelSize.Width;
+            int height = rect.SnappedHeight / arranger.ElementPixelSize.Height;
+            var copy = arranger.CopyElements(x, y, width, height);
+            copy.ProjectResource = OriginatingProjectResource;
+            _clipboard = copy;
+        }
+        else if (SnapMode == SnapMode.Pixel && arranger.ColorType == PixelColorType.Indexed)
+        {
+            _clipboard = arranger.CopyPixelsIndexed(rect.SnappedLeft, rect.SnappedTop, rect.SnappedWidth, rect.SnappedHeight);
+        }
+        else if (SnapMode == SnapMode.Pixel && arranger.ColorType == PixelColorType.Direct)
+        {
+            _clipboard = arranger.CopyPixelsDirect(rect.SnappedLeft, rect.SnappedTop, rect.SnappedWidth, rect.SnappedHeight);
+        }
+    }
+
+    [RelayCommand]
+    public void PasteFromClipboard()
+    {
+        if (_clipboard is null)
+            return;
+
+        CancelOverlay();
+
+        var paste = new ArrangerPaste(_clipboard, SnapMode);
+        paste.Rect.MoveTo(0, 0);
+
+        Paste = paste;
+        PendingOperationMessage = "Press [Enter] to Apply Paste or [Esc] to Cancel";
         InvalidateEditor(InvalidationLevel.Overlay);
     }
 
