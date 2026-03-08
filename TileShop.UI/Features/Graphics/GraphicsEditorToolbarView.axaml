@@ -110,7 +110,7 @@
                 </StackPanel>
 
                 <!--  View Tools  -->
-                <StackPanel IsVisible="{Binding IsViewMode}" Spacing="4">
+                <WrapPanel IsVisible="{Binding IsViewMode}" ItemSpacing="4">
                     <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left" Classes="muted" Text="Tools" />
 
                     <StackPanel Classes="toolbar-group">
@@ -127,10 +127,10 @@
                             <PathIcon Classes="medium" Data="{x:Static cc:AppIcons.RectangularSelection}" />
                         </RadioButton>
                     </StackPanel>
-                </StackPanel>
+                </WrapPanel>
 
                 <!--  Arranger Tools  -->
-                <StackPanel IsVisible="{Binding IsArrangerMode}" Spacing="4">
+                <WrapPanel IsVisible="{Binding IsArrangerMode}" ItemSpacing="4">
                     <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left" Classes="muted" Text="Tools" />
 
                     <StackPanel Classes="toolbar-group">
@@ -190,10 +190,10 @@
                             <PathIcon Classes="medium" Data="{x:Static cc:AppIcons.MirrorVertical}" />
                         </RadioButton>
                     </StackPanel>
-                </StackPanel>
+                </WrapPanel>
 
                 <!--  Pixel Tools  -->
-                <StackPanel IsVisible="{Binding IsDrawMode}" Spacing="4">
+                <WrapPanel IsVisible="{Binding IsDrawMode}" ItemSpacing="4">
                     <TextBlock Margin="0,8,0,0" HorizontalAlignment="Left" Classes="muted" Text="Tools" />
 
                     <StackPanel Classes="toolbar-group">
@@ -229,7 +229,7 @@
                             <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="#F9F9F9" Text="Set Draw Clip" />
                         </StackPanel>
                     </Button>
-                </StackPanel>
+                </WrapPanel>
 
                 <!--  Palette  -->
                 <StackPanel IsVisible="{Binding IsIndexedColor}" Spacing="4">
