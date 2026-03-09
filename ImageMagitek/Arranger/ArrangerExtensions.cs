@@ -52,8 +52,8 @@ public static class ArrangerExtensions
     /// <param name="arranger">Source to copy from</param>
     /// <param name="x">x-coordinate in pixel coordinates</param>
     /// <param name="y">y-coordinate in pixel coordinates</param>
-    /// <param name="copyWidth">Width of copy in pixel coordinates</param>
-    /// <param name="copyHeight">Height of copy in pixel coordinates</param>
+    /// <param name="width">Width of copy in pixel coordinates</param>
+    /// <param name="height">Height of copy in pixel coordinates</param>
     /// <returns></returns>
     public static IndexedPixelCopy CopyPixelsIndexed(this Arranger arranger, int x, int y, int width, int height)
     {
@@ -85,8 +85,8 @@ public static class ArrangerExtensions
     /// <param name="arranger">Source to copy from</param>
     /// <param name="x">x-coordinate in pixel coordinates</param>
     /// <param name="y">y-coordinate in pixel coordinates</param>
-    /// <param name="copyWidth">Width of copy in pixel coordinates</param>
-    /// <param name="copyHeight">Height of copy in pixel coordinates</param>
+    /// <param name="width">Width of copy in pixel coordinates</param>
+    /// <param name="height">Height of copy in pixel coordinates</param>
     /// <returns></returns>
     public static DirectPixelCopy CopyPixelsDirect(this Arranger arranger, int x, int y, int width, int height)
     {
@@ -108,8 +108,9 @@ public static class ArrangerExtensions
     /// Moves a Sequential Arranger's file position and updates each Element
     /// Will not move outside of the bounds of the underlying file
     /// </summary>
+    /// <param name="arranger"></param>
     /// <param name="moveType">Type of move requested</param>
-    /// <returns>Updated address of first element</returns>
+    /// <returns>Updated address of the first element</returns>
     public static BitAddress Move(this SequentialArranger arranger, ArrangerMoveType moveType)
     {
         if (arranger.Mode != ArrangerMode.Sequential)
@@ -119,8 +120,8 @@ public static class ArrangerExtensions
         var newAddress = initialAddress;
         long bitDelta = 0;
 
-        var patternWidth = arranger.TileLayout?.Width ?? 1;
-        var patternHeight = arranger.TileLayout?.Height ?? 1;
+        var patternWidth = arranger.TileLayout.Width;
+        var patternHeight = arranger.TileLayout.Height;
 
         switch (moveType) // Calculate the new address based on the movement command. Negative and post-EOF addresses are handled after the switch
         {
@@ -201,7 +202,7 @@ public static class ArrangerExtensions
         if (elementX > arranger.ArrangerElementSize.Width || elementY > arranger.ArrangerElementSize.Height)
             return new MagitekResult.Failed($"Location ({elementX}, {elementY}) is outside of the arranger");
 
-        if (arranger.GetElement(elementX, elementY) is ArrangerElement el)
+        if (arranger.GetElement(elementX, elementY) is { } el)
         {
             if (el.Width != el.Height)
                 return new MagitekResult.Failed("Only square elements may be rotated");
@@ -222,7 +223,7 @@ public static class ArrangerExtensions
 
                 (RotationOperation.None, _) => rotate,
                 (_, RotationOperation.None) => el.Rotation,
-                _ => el.Rotation
+                _ => RotationOperation.None
             };
 
             var rotatedElement = el.WithRotation(newRotation);
@@ -239,7 +240,7 @@ public static class ArrangerExtensions
         if (mirror == MirrorOperation.None)
             return MagitekResult.SuccessResult;
 
-        if (arranger.GetElement(elementX, elementY) is ArrangerElement el)
+        if (arranger.GetElement(elementX, elementY) is { } el)
         {
             var newMirror = (el.Mirror, mirror) switch
             {
@@ -257,7 +258,7 @@ public static class ArrangerExtensions
 
                 (MirrorOperation.None, _) => mirror,
                 (_, MirrorOperation.None) => el.Mirror,
-                _ => el.Mirror
+                _ => MirrorOperation.None
             };
 
             var mirroredElement = el.WithMirror(newMirror);
@@ -272,6 +273,7 @@ public static class ArrangerExtensions
     /// <summary>
     /// Translates a point to an element location in the underlying arranger
     /// </summary>
+    /// <param name="arranger"></param>
     /// <param name="location">Point in pixel coordinates</param>
     /// <returns>Element location in element coordinates</returns>
     public static Point PointToElementLocation(this Arranger arranger, Point location)

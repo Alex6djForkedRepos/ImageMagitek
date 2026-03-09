@@ -6,12 +6,15 @@ using ImageMagitek;
 using TileShop.Shared.Messages;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
+using TileShop.UI.Models;
 
 namespace TileShop.UI.ViewModels;
 
 public partial class GraphicsEditorViewModel
 {
     private const double _handleScreenSize = 8.0;
+
+    private static ArrangerCopy? _clipboard;
 
     [ObservableProperty] private SelectionHandle _activeResizeHandle = SelectionHandle.None;
     [ObservableProperty] private bool _isResizing;
@@ -20,13 +23,85 @@ public partial class GraphicsEditorViewModel
     public void SelectAll()
     {
         CancelOverlay();
+
+        double left = 0, top = 0;
+        double right = WorkingArranger.ArrangerPixelSize.Width;
+        double bottom = WorkingArranger.ArrangerPixelSize.Height;
+
+        if (IsDrawMode && IsDrawClipActive && DrawClipRect is { } clip)
+        {
+            left = clip.SnappedLeft;
+            top = clip.SnappedTop;
+            right = clip.SnappedRight;
+            bottom = clip.SnappedBottom;
+        }
+
         Selection = new ArrangerSelection(WorkingArranger, SnapMode);
-        Selection.StartSelection(0, 0);
-        Selection.UpdateSelectionEndpoint(WorkingArranger.ArrangerPixelSize.Width, WorkingArranger.ArrangerPixelSize.Height);
+        Selection.StartSelection(left, top);
+        Selection.UpdateSelectionEndpoint(right, bottom);
         CompleteSelection();
         OnPropertyChanged(nameof(CanEditSelection));
         OnPropertyChanged(nameof(CanSetDrawClipFromSelection));
         OnPropertyChanged(nameof(CanAddSelectionAsScatteredArranger));
+        InvalidateEditor(InvalidationLevel.Overlay);
+    }
+
+    [RelayCommand]
+    public void CopySelection()
+    {
+        if (!Selection.HasSelection)
+            return;
+
+        var rect = Selection.SelectionRect;
+        var arranger = WorkingArranger;
+
+        if (SnapMode == SnapMode.Element)
+        {
+            int x = rect.SnappedLeft / arranger.ElementPixelSize.Width;
+            int y = rect.SnappedTop / arranger.ElementPixelSize.Height;
+            int width = rect.SnappedWidth / arranger.ElementPixelSize.Width;
+            int height = rect.SnappedHeight / arranger.ElementPixelSize.Height;
+            var copy = arranger.CopyElements(x, y, width, height);
+            copy.ProjectResource = OriginatingProjectResource;
+            _clipboard = copy;
+        }
+        else if (SnapMode == SnapMode.Pixel && arranger.ColorType == PixelColorType.Indexed)
+        {
+            _clipboard = arranger.CopyPixelsIndexed(rect.SnappedLeft, rect.SnappedTop, rect.SnappedWidth, rect.SnappedHeight);
+        }
+        else if (SnapMode == SnapMode.Pixel && arranger.ColorType == PixelColorType.Direct)
+        {
+            _clipboard = arranger.CopyPixelsDirect(rect.SnappedLeft, rect.SnappedTop, rect.SnappedWidth, rect.SnappedHeight);
+        }
+    }
+
+    [RelayCommand]
+    public void PasteFromClipboard()
+    {
+        if (_clipboard is null)
+            return;
+
+        bool isElementPasteInArrangeMode = _clipboard is ElementCopy
+            && EditMode == GraphicsEditMode.Arrange
+            && IsTiledLayout
+            && WorkingArranger is ScatteredArranger;
+
+        if (!isElementPasteInArrangeMode && EditMode != GraphicsEditMode.Draw)
+        {
+            EditMode = GraphicsEditMode.Draw;
+        }
+
+        CancelOverlay();
+
+        var paste = new ArrangerPaste(_clipboard, SnapMode);
+
+        if (IsDrawMode && IsDrawClipActive && DrawClipRect is { } clip)
+            paste.Rect.MoveTo(clip.SnappedLeft, clip.SnappedTop);
+        else
+            paste.Rect.MoveTo(0, 0);
+
+        Paste = paste;
+        PendingOperationMessage = "Press [Enter] to Apply Paste or [Esc] to Cancel";
         InvalidateEditor(InvalidationLevel.Overlay);
     }
 
@@ -102,6 +177,7 @@ public partial class GraphicsEditorViewModel
 
     public void StartNewSelection(double x, double y)
     {
+        (x, y) = ClampToSelectionBounds(x, y);
         Selection.StartSelection(x, y);
         IsSelecting = true;
     }
@@ -118,6 +194,7 @@ public partial class GraphicsEditorViewModel
         }
 
         CancelOverlay();
+        (x, y) = ClampToSelectionBounds(x, y);
         Selection.StartSelection(x, y);
         IsSelecting = true;
         return true;
@@ -127,6 +204,7 @@ public partial class GraphicsEditorViewModel
     {
         if (IsSelecting)
         {
+            (x, y) = ClampToSelectionBounds(x, y);
             Selection.UpdateSelectionEndpoint(x, y);
             InvalidateEditor(InvalidationLevel.Overlay);
         }
@@ -202,6 +280,7 @@ public partial class GraphicsEditorViewModel
         if (!IsResizing || ActiveResizeHandle == SelectionHandle.None)
             return;
 
+        (x, y) = ClampToSelectionBounds(x, y);
         var rect = Selection.SelectionRect;
 
         switch (ActiveResizeHandle)
@@ -237,6 +316,36 @@ public partial class GraphicsEditorViewModel
         }
 
         InvalidateEditor(InvalidationLevel.Overlay);
+    }
+
+    internal void ClampPastePositionToDrawClip()
+    {
+        if (Paste is null || !IsDrawMode || !IsDrawClipActive || DrawClipRect is not { } clip)
+            return;
+
+        var rect = Paste.Rect;
+        int x = Math.Clamp(rect.SnappedLeft, clip.SnappedLeft - rect.SnappedWidth + 1, clip.SnappedRight - 1);
+        int y = Math.Clamp(rect.SnappedTop, clip.SnappedTop - rect.SnappedHeight + 1, clip.SnappedBottom - 1);
+
+        if (x != rect.SnappedLeft || y != rect.SnappedTop)
+            rect.MoveTo(x, y);
+    }
+
+    private (double x, double y) ClampToSelectionBounds(double x, double y)
+    {
+        double minX = 0, minY = 0;
+        double maxX = WorkingArranger.ArrangerPixelSize.Width;
+        double maxY = WorkingArranger.ArrangerPixelSize.Height;
+
+        if (IsDrawMode && IsDrawClipActive && DrawClipRect is { } clip)
+        {
+            minX = clip.SnappedLeft;
+            minY = clip.SnappedTop;
+            maxX = clip.SnappedRight;
+            maxY = clip.SnappedBottom;
+        }
+
+        return (Math.Clamp(x, minX, maxX), Math.Clamp(y, minY, maxY));
     }
 
     public void CompleteResize()

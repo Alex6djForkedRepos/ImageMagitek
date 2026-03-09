@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
+using Avalonia.Media;
 using ImageMagitek;
 using ImageMagitek.Codec;
+using ImageMagitek.Colors;
 using TileShop.Shared.Input;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
@@ -13,32 +16,34 @@ namespace TileShop.UI.ViewModels;
 public partial class GraphicsEditorViewModel
 {
     public Point? LastMousePosition { get; private set; }
-    public Key PrimaryAltKey { get; private set; } = Key.LeftAlt;
-    public Key SecondaryAltKey { get; private set; } = Key.LeftShift;
+    public IReadOnlyList<Key> AlternativeToolKeys { get; } = [Key.LeftControl, Key.RightControl];
+    public IReadOnlyList<Key> TertiaryToolKeys { get; } = [Key.LeftShift, Key.RightShift];
 
-    private readonly Dictionary<ArrangerTool, IToolHandler<GraphicsEditorViewModel>> _arrangerTools = new()
+    private readonly Dictionary<ArrangeTool, IToolHandler<GraphicsEditorViewModel>> _arrangerTools = new()
     {
-        [ArrangerTool.Select] = new SelectToolHandler(),
-        [ArrangerTool.ApplyPalette] = new ApplyPaletteToolHandler(),
-        [ArrangerTool.PickPalette] = new PickPaletteToolHandler(),
-        [ArrangerTool.InspectElement] = new InspectElementToolHandler(),
-        [ArrangerTool.RotateLeft] = new RotateToolHandler(RotationOperation.Left),
-        [ArrangerTool.RotateRight] = new RotateToolHandler(RotationOperation.Right),
-        [ArrangerTool.MirrorHorizontal] = new MirrorToolHandler(MirrorOperation.Horizontal),
-        [ArrangerTool.MirrorVertical] = new MirrorToolHandler(MirrorOperation.Vertical),
+        [ArrangeTool.ElementSelect] = new ElementSelectToolHandler(),
+        [ArrangeTool.PixelSelect] = new PixelSelectToolHandler(),
+        [ArrangeTool.ApplyPalette] = new ApplyPaletteToolHandler(),
+        [ArrangeTool.PickPalette] = new PickPaletteToolHandler(),
+        [ArrangeTool.InspectElement] = new InspectElementToolHandler(),
+        [ArrangeTool.RotateLeft] = new RotateToolHandler(RotationOperation.Left),
+        [ArrangeTool.RotateRight] = new RotateToolHandler(RotationOperation.Right),
+        [ArrangeTool.MirrorHorizontal] = new MirrorToolHandler(MirrorOperation.Horizontal),
+        [ArrangeTool.MirrorVertical] = new MirrorToolHandler(MirrorOperation.Vertical),
     };
 
     private readonly Dictionary<ViewTool, IToolHandler<GraphicsEditorViewModel>> _viewTools = new()
     {
-        [ViewTool.Select] = new SelectToolHandler(),
+        [ViewTool.ElementSelect] = new ElementSelectToolHandler(),
+        [ViewTool.PixelSelect] = new PixelSelectToolHandler(),
     };
 
-    private readonly Dictionary<PixelTool, IToolHandler<GraphicsEditorViewModel>> _pixelTools = new()
+    private readonly Dictionary<DrawTool, IToolHandler<GraphicsEditorViewModel>> _pixelTools = new()
     {
-        [PixelTool.Select] = new SelectToolHandler(),
-        [PixelTool.Pencil] = new PencilToolHandler(),
-        [PixelTool.ColorPicker] = new ColorPickerToolHandler(),
-        [PixelTool.FloodFill] = new FloodFillToolHandler(),
+        [DrawTool.PixelSelect] = new PixelSelectToolHandler(),
+        [DrawTool.Pencil] = new PencilToolHandler(),
+        [DrawTool.ColorPicker] = new ColorPickerToolHandler(),
+        [DrawTool.FloodFill] = new FloodFillToolHandler(),
     };
 
     private IToolHandler<GraphicsEditorViewModel>? _modifierOverrideTool;
@@ -50,9 +55,9 @@ public partial class GraphicsEditorViewModel
 
         return EditMode switch
         {
-            GraphicsEditMode.View => _viewTools[ActiveViewTool],
-            GraphicsEditMode.Arrange => _arrangerTools[ActiveArrangerTool],
-            GraphicsEditMode.Draw => _pixelTools[ActivePixelTool],
+            GraphicsEditMode.View => _viewTools[SelectedViewTool],
+            GraphicsEditMode.Arrange => _arrangerTools[SelectedArrangeTool],
+            GraphicsEditMode.Draw => _pixelTools[SelectedDrawTool],
             _ => null
         };
     }
@@ -62,8 +67,13 @@ public partial class GraphicsEditorViewModel
         if (_modifierOverrideTool is not null)
             return _modifierOverrideTool;
 
-        if (EditMode == GraphicsEditMode.Draw && modifiers.HasFlag(KeyModifiers.Alt))
-            return _pixelTools[PixelTool.ColorPicker];
+        if (modifiers.HasFlag(KeyModifiers.Alt))
+        {
+            if (EditMode == GraphicsEditMode.Draw)
+                return _pixelTools[DrawTool.ColorPicker];
+            if (EditMode == GraphicsEditMode.Arrange)
+                return _arrangerTools[ArrangeTool.PickPalette];
+        }
 
         return ResolveActiveTool();
     }
@@ -137,8 +147,8 @@ public partial class GraphicsEditorViewModel
 
         LastMousePosition = new Point(xc, yc);
 
-        // Shift+move in arranger mode for single-element selection
-        if (EditMode == GraphicsEditMode.Arrange && mouseState.Modifiers.HasFlag(KeyModifiers.Shift) && Paste is null)
+        // Shift+move in arranger mode for single-element selection (only when not overridden by modifier tool)
+        if (EditMode == GraphicsEditMode.Arrange && _modifierOverrideTool is null && mouseState.Modifiers.HasFlag(KeyModifiers.Shift) && Paste is null)
         {
             if (TryStartNewSingleSelection(x, y))
             {
@@ -178,18 +188,30 @@ public partial class GraphicsEditorViewModel
 
     public bool KeyPress(KeyState keyState, double? x, double? y)
     {
+        // Handle modifier key override (e.g., Alt/Shift pushes picker tool)
+        // This must work even when the mouse is not hovering over the image
+        if (_modifierOverrideTool is null &&
+            (AlternativeToolKeys.Contains(keyState.Key) || TertiaryToolKeys.Contains(keyState.Key)))
+        {
+            if (EditMode == GraphicsEditMode.Draw)
+            {
+                _modifierOverrideTool = _pixelTools[DrawTool.ColorPicker];
+                OnPropertyChanged(nameof(DisplayedDrawTool));
+                return true;
+            }
+            else if (EditMode == GraphicsEditMode.Arrange)
+            {
+                _modifierOverrideTool = _arrangerTools[ArrangeTool.PickPalette];
+                OnPropertyChanged(nameof(DisplayedArrangeTool));
+                return true;
+            }
+        }
+
         if (!x.HasValue || !y.HasValue)
             return false;
 
         int xc = Math.Clamp((int)x.Value, 0, WorkingArranger.ArrangerPixelSize.Width - 1);
         int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
-
-        // Handle modifier key override (e.g., Alt pushes ColorPicker in pixel mode)
-        if (EditMode == GraphicsEditMode.Draw && keyState.Key == SecondaryAltKey && _modifierOverrideTool is null)
-        {
-            _modifierOverrideTool = _pixelTools[PixelTool.ColorPicker];
-            return true;
-        }
 
         var ctx = new ToolContext(x.Value, y.Value, xc, yc, keyState);
         var tool = ResolveActiveTool();
@@ -202,18 +224,21 @@ public partial class GraphicsEditorViewModel
 
     public void KeyUp(KeyState keyState, double? x, double? y)
     {
+        // Release modifier override - must work even when mouse is not hovering
+        if (_modifierOverrideTool is not null &&
+            (AlternativeToolKeys.Contains(keyState.Key) || TertiaryToolKeys.Contains(keyState.Key)))
+        {
+            _modifierOverrideTool = null;
+            OnPropertyChanged(nameof(DisplayedDrawTool));
+            OnPropertyChanged(nameof(DisplayedArrangeTool));
+            return;
+        }
+
         if (!x.HasValue || !y.HasValue)
             return;
 
         int xc = Math.Clamp((int)x.Value, 0, WorkingArranger.ArrangerPixelSize.Width - 1);
         int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
-
-        // Release modifier override
-        if (keyState.Key == SecondaryAltKey && _modifierOverrideTool is not null)
-        {
-            _modifierOverrideTool = null;
-            return;
-        }
 
         var ctx = new ToolContext(x.Value, y.Value, xc, yc, keyState);
         var tool = ResolveActiveTool();
@@ -225,6 +250,7 @@ public partial class GraphicsEditorViewModel
 
     internal void UpdateActivityMessage(int xc, int yc)
     {
+        ActivityBrush = null;
         var arranger = WorkingArranger;
 
         if (Selection.HasSelection)
@@ -246,8 +272,75 @@ public partial class GraphicsEditorViewModel
         }
     }
 
+    internal void InspectColorAtPosition(int xc, int yc)
+    {
+        var elX = xc / WorkingArranger.ElementPixelSize.Width;
+        var elY = yc / WorkingArranger.ElementPixelSize.Height;
+        var el = WorkingArranger.GetElement(elX, elY);
+
+        if (el is { Codec: IIndexedCodec codec })
+        {
+            var palette = codec.Palette;
+            var colorIndex = _imageAdapter.GetIndexedPixel(xc, yc);
+            var nativeColor = palette.GetNativeColor(colorIndex);
+            var foreignColor = palette.GetForeignColor(colorIndex);
+
+            ActivityBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(nativeColor.R, nativeColor.G, nativeColor.B));
+
+            var foreignHex = $"0x{foreignColor.Color:X}";
+            ActivityMessage = $"Color ({xc}, {yc}): Index {colorIndex}, {Palette.ColorModelToString(palette.ColorModel)} {foreignHex}, Rgba32 ({nativeColor.R}, {nativeColor.G}, {nativeColor.B}, {nativeColor.A})";
+        }
+        else if (el is { Codec: IDirectCodec })
+        {
+            var color = _imageAdapter.GetDirectPixel(xc, yc);
+
+            ActivityBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(color.R, color.G, color.B));
+            ActivityMessage = $"Color ({xc}, {yc}): Rgba32 ({color.R}, {color.G}, {color.B}, {color.A})";
+        }
+        else if (el is not null)
+        {
+            ActivityBrush = null;
+            ActivityMessage = $"Element ({elX}, {elY}): No color data";
+        }
+        else
+        {
+            ActivityBrush = null;
+            ActivityMessage = $"Element ({elX}, {elY}): Empty";
+        }
+    }
+
+    internal void InspectPaletteAtPosition(int xc, int yc)
+    {
+        ActivityBrush = null;
+        var elX = xc / WorkingArranger.ElementPixelSize.Width;
+        var elY = yc / WorkingArranger.ElementPixelSize.Height;
+        var el = WorkingArranger.GetElement(elX, elY);
+
+        if (el is { Codec: IIndexedCodec codec })
+        {
+            var palette = codec.Palette;
+            var sourceName = palette.DataSource switch
+            {
+                FileDataSource fds => fds.FileLocation,
+                MemoryDataSource => "Memory",
+                _ => palette.StorageSource == PaletteStorageSource.GlobalJson ? "Global" : "None"
+            };
+
+            ActivityMessage = $"Palette: {palette.Name}, Colors {palette.Entries}, Model {Palette.ColorModelToString(palette.ColorModel)}, Source {sourceName}";
+        }
+        else if (el is not null)
+        {
+            ActivityMessage = $"Element ({elX}, {elY}): Not indexed color";
+        }
+        else
+        {
+            ActivityMessage = $"Element ({elX}, {elY}): Empty";
+        }
+    }
+
     internal void InspectElementAtPosition(int xc, int yc)
     {
+        ActivityBrush = null;
         var elX = xc / WorkingArranger.ElementPixelSize.Width;
         var elY = yc / WorkingArranger.ElementPixelSize.Height;
         var el = WorkingArranger.GetElement(elX, elY);

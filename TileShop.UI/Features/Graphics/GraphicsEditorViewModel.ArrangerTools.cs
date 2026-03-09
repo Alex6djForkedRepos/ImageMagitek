@@ -20,13 +20,29 @@ namespace TileShop.UI.ViewModels;
 public partial class GraphicsEditorViewModel
 {
     [ObservableProperty] private bool _isPencilDrawing;
-    [ObservableProperty] private PixelTool _activePixelTool = PixelTool.Pencil;
-    [ObservableProperty] private ArrangerTool _activeArrangerTool = ArrangerTool.Select;
-    [ObservableProperty] private ViewTool _activeViewTool = ViewTool.Select;
+    [ObservableProperty] private DrawTool _selectedDrawTool = DrawTool.Pencil;
+    [ObservableProperty] private ArrangeTool _selectedArrangeTool = ArrangeTool.ElementSelect;
+    [ObservableProperty] private ViewTool _selectedViewTool = ViewTool.ElementSelect;
+
+    public DrawTool DisplayedDrawTool => _modifierOverrideTool is not null && EditMode == GraphicsEditMode.Draw
+        ? DrawTool.ColorPicker : SelectedDrawTool;
+
+    public ArrangeTool DisplayedArrangeTool => _modifierOverrideTool is not null && EditMode == GraphicsEditMode.Arrange
+        ? ArrangeTool.PickPalette : SelectedArrangeTool;
+    partial void OnSelectedViewToolChanged(ViewTool value)
+    {
+        if (value == ViewTool.ElementSelect)
+            SnapMode = SnapMode.Element;
+
+        OnPropertyChanged(nameof(CanChangeSnapMode));
+    }
+
     [ObservableProperty] private bool _areSymmetryToolsEnabled;
 
-    partial void OnActivePixelToolChanged(PixelTool oldValue, PixelTool newValue)
+    partial void OnSelectedDrawToolChanged(DrawTool oldValue, DrawTool newValue)
     {
+        OnPropertyChanged(nameof(DisplayedDrawTool));
+
         if (_pixelTools.TryGetValue(oldValue, out var outgoing))
         {
             var historyAction = outgoing.Deactivate(this);
@@ -38,13 +54,13 @@ public partial class GraphicsEditorViewModel
     [RelayCommand]
     public void ChangeViewTool(ViewTool tool)
     {
-        ActiveViewTool = tool;
+        SelectedViewTool = tool;
     }
 
     [RelayCommand]
-    public void ChangeArrangerTool(ArrangerTool tool)
+    public void ChangeArrangerTool(ArrangeTool tool)
     {
-        ActiveArrangerTool = tool;
+        SelectedArrangeTool = tool;
     }
 
     [RelayCommand]
@@ -53,8 +69,8 @@ public partial class GraphicsEditorViewModel
         AreSymmetryToolsEnabled = !AreSymmetryToolsEnabled;
     }
 
-    public void SetSelectToolMode() => ActiveArrangerTool = ArrangerTool.Select;
-    public void SetApplyPaletteMode() => ActiveArrangerTool = ArrangerTool.ApplyPalette;
+    public void SetSelectToolMode() => SelectedArrangeTool = ArrangeTool.ElementSelect;
+    public void SetApplyPaletteMode() => SelectedArrangeTool = ArrangeTool.ApplyPalette;
 
     [RelayCommand]
     public void ToggleGridlineVisibility()
@@ -259,10 +275,23 @@ public partial class GraphicsEditorViewModel
 
     private MagitekResult ApplyPixelPaste(ArrangerPaste paste)
     {
-        int destX = Math.Max(0, paste.Rect.SnappedLeft);
-        int destY = Math.Max(0, paste.Rect.SnappedTop);
-        int sourceX = paste.Rect.SnappedLeft >= 0 ? 0 : -paste.Rect.SnappedLeft;
-        int sourceY = paste.Rect.SnappedTop >= 0 ? 0 : -paste.Rect.SnappedTop;
+        int clipLeft = 0;
+        int clipTop = 0;
+        int clipRight = _imageAdapter.Width;
+        int clipBottom = _imageAdapter.Height;
+
+        if (IsDrawClipActive && DrawClipRect is { } clip)
+        {
+            clipLeft = Math.Max(clipLeft, clip.SnappedLeft);
+            clipTop = Math.Max(clipTop, clip.SnappedTop);
+            clipRight = Math.Min(clipRight, clip.SnappedRight);
+            clipBottom = Math.Min(clipBottom, clip.SnappedBottom);
+        }
+
+        int destX = Math.Max(clipLeft, paste.Rect.SnappedLeft);
+        int destY = Math.Max(clipTop, paste.Rect.SnappedTop);
+        int sourceX = paste.Rect.SnappedLeft >= clipLeft ? 0 : clipLeft - paste.Rect.SnappedLeft;
+        int sourceY = paste.Rect.SnappedTop >= clipTop ? 0 : clipTop - paste.Rect.SnappedTop;
 
         var destStart = new Point(destX, destY);
         var sourceStart = new Point(sourceX, sourceY);
@@ -278,8 +307,11 @@ public partial class GraphicsEditorViewModel
 
             if (copy is IndexedPixelCopy indexedCopy)
             {
-                int copyWidth = Math.Min(indexedCopy.Width - sourceX, _imageAdapter.Width - destX);
-                int copyHeight = Math.Min(indexedCopy.Height - sourceY, _imageAdapter.Height - destY);
+                int copyWidth = Math.Min(indexedCopy.Width - sourceX, clipRight - destX);
+                int copyHeight = Math.Min(indexedCopy.Height - sourceY, clipBottom - destY);
+
+                if (copyWidth <= 0 || copyHeight <= 0)
+                    return MagitekResult.SuccessResult;
 
                 return ImageCopier.CopyPixels(indexedCopy.Image, destImage, sourceStart, destStart,
                     copyWidth, copyHeight,
@@ -288,8 +320,11 @@ public partial class GraphicsEditorViewModel
             }
             else if (copy is DirectPixelCopy directCopy)
             {
-                int copyWidth = Math.Min(directCopy.Width - sourceX, _imageAdapter.Width - destX);
-                int copyHeight = Math.Min(directCopy.Height - sourceY, _imageAdapter.Height - destY);
+                int copyWidth = Math.Min(directCopy.Width - sourceX, clipRight - destX);
+                int copyHeight = Math.Min(directCopy.Height - sourceY, clipBottom - destY);
+
+                if (copyWidth <= 0 || copyHeight <= 0)
+                    return MagitekResult.SuccessResult;
 
                 return ImageCopier.CopyPixels(directCopy.Image, destImage, sourceStart, destStart,
                     copyWidth, copyHeight,
@@ -302,16 +337,22 @@ public partial class GraphicsEditorViewModel
 
             if (copy is DirectPixelCopy directCopy)
             {
-                int copyWidth = Math.Min(directCopy.Width - sourceX, _imageAdapter.Width - destX);
-                int copyHeight = Math.Min(directCopy.Height - sourceY, _imageAdapter.Height - destY);
+                int copyWidth = Math.Min(directCopy.Width - sourceX, clipRight - destX);
+                int copyHeight = Math.Min(directCopy.Height - sourceY, clipBottom - destY);
+
+                if (copyWidth <= 0 || copyHeight <= 0)
+                    return MagitekResult.SuccessResult;
 
                 return ImageCopier.CopyPixels(directCopy.Image, destImage, sourceStart, destStart,
                     copyWidth, copyHeight);
             }
             else if (copy is IndexedPixelCopy indexedCopy)
             {
-                int copyWidth = Math.Min(indexedCopy.Width - sourceX, _imageAdapter.Width - destX);
-                int copyHeight = Math.Min(indexedCopy.Height - sourceY, _imageAdapter.Height - destY);
+                int copyWidth = Math.Min(indexedCopy.Width - sourceX, clipRight - destX);
+                int copyHeight = Math.Min(indexedCopy.Height - sourceY, clipBottom - destY);
+
+                if (copyWidth <= 0 || copyHeight <= 0)
+                    return MagitekResult.SuccessResult;
 
                 return ImageCopier.CopyPixels(indexedCopy.Image, destImage, sourceStart, destStart,
                     copyWidth, copyHeight);

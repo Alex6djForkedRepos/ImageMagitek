@@ -37,7 +37,7 @@ public class SnappedRectangle : ObservableObject
         get => _elementSize;
         set
         {
-            SetProperty(ref _maximumSize, value);
+            SetProperty(ref _elementSize, value);
             Snap();
         }
     }

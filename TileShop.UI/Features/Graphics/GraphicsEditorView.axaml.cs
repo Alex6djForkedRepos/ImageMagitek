@@ -46,8 +46,8 @@ public partial class GraphicsEditorView : UserControl
         EditorCanvas.PointerCaptureLost += CanvasOnPointerCaptureLost;
         EditorCanvas.ContextRequested += CanvasOnContextRequested;
 
-        KeyDown += OnKeyDown;
-        KeyUp += OnKeyUp;
+        AddHandler(KeyDownEvent, OnKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, OnKeyUp, Avalonia.Interactivity.RoutingStrategies.Tunnel);
     }
 
     private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
@@ -77,20 +77,24 @@ public partial class GraphicsEditorView : UserControl
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (ViewModel?.LastMousePosition is { } point)
-        {
-            var state = InputAdapter.CreateKeyState(e.Key, e.KeyModifiers);
-            ViewModel.KeyPress(state, point.X, point.Y);
-        }
+        if (ViewModel is null)
+            return;
+
+        var state = InputAdapter.CreateKeyState(e.Key, e.KeyModifiers);
+        double? x = ViewModel.LastMousePosition?.X;
+        double? y = ViewModel.LastMousePosition?.Y;
+        e.Handled = ViewModel.KeyPress(state, x, y);
     }
 
     private void OnKeyUp(object? sender, KeyEventArgs e)
     {
-        if (ViewModel?.LastMousePosition is { } point)
-        {
-            var state = InputAdapter.CreateKeyState(e.Key, e.KeyModifiers);
-            ViewModel.KeyUp(state, point.X, point.Y);
-        }
+        if (ViewModel is null)
+            return;
+
+        var state = InputAdapter.CreateKeyState(e.Key, e.KeyModifiers);
+        double? x = ViewModel.LastMousePosition?.X;
+        double? y = ViewModel.LastMousePosition?.Y;
+        ViewModel.KeyUp(state, x, y);
     }
 
     private bool IsPointOnDraggable(double localX, double localY)

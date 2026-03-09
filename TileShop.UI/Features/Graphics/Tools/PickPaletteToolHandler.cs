@@ -16,7 +16,7 @@ public class PickPaletteToolHandler : IToolHandler<GraphicsEditorViewModel>
 
     public ToolResult OnMouseMove(ToolContext ctx, GraphicsEditorViewModel state)
     {
-        state.UpdateActivityMessage(ctx.PixelX, ctx.PixelY);
+        state.InspectPaletteAtPosition(ctx.PixelX, ctx.PixelY);
         return ToolResult.Unhandled;
     }
 

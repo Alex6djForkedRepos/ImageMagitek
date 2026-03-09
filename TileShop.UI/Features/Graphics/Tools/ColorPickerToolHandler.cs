@@ -19,7 +19,7 @@ public class ColorPickerToolHandler : IToolHandler<GraphicsEditorViewModel>
 
     public ToolResult OnMouseMove(ToolContext ctx, GraphicsEditorViewModel state)
     {
-        state.UpdateActivityMessage(ctx.PixelX, ctx.PixelY);
+        state.InspectColorAtPosition(ctx.PixelX, ctx.PixelY);
         return ToolResult.Unhandled;
     }
 

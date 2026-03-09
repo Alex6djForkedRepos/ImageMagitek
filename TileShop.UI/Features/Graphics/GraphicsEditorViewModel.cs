@@ -18,6 +18,7 @@ using TileShop.Shared.Interactions;
 using TileShop.Shared.Messages;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
+using Avalonia.Media;
 using TileShop.UI.Features.Graphics;
 using TileShop.UI.Imaging;
 using TileShop.UI.Models;
@@ -25,9 +26,9 @@ using TileShop.UI.Models;
 namespace TileShop.UI.ViewModels;
 
 public enum GraphicsEditMode { View, Arrange, Draw }
-public enum PixelTool { Select, Pencil, ColorPicker, FloodFill }
-public enum ViewTool { Select }
-public enum ArrangerTool { Select, ApplyPalette, PickPalette, InspectElement, RotateLeft, RotateRight, MirrorHorizontal, MirrorVertical }
+public enum ViewTool { ElementSelect, PixelSelect }
+public enum ArrangeTool { ElementSelect, PixelSelect, ApplyPalette, PickPalette, InspectElement, RotateLeft, RotateRight, MirrorHorizontal, MirrorVertical }
+public enum DrawTool { PixelSelect, Pencil, ColorPicker, FloodFill }
 public enum ColorPriority { Primary, Secondary }
 public enum DrawClipEffect { Greyscale, Hidden }
 
@@ -52,6 +53,7 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
     [ObservableProperty] private BitmapAdapter _bitmapAdapter = null!;
     [ObservableProperty] private string _activityMessage = "";
     [ObservableProperty] private string _pendingOperationMessage = "";
+    [ObservableProperty] private ISolidColorBrush? _activityBrush;
 
     public bool IsSingleLayout => WorkingArranger.Layout == ElementLayout.Single;
     public bool IsTiledLayout => WorkingArranger.Layout == ElementLayout.Tiled;
@@ -68,9 +70,9 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
         // Deactivate the outgoing tool (Display mode has no tools)
         IToolHandler<GraphicsEditorViewModel>? outgoingTool = oldValue switch
         {
-            GraphicsEditMode.View => _viewTools.GetValueOrDefault(ActiveViewTool),
-            GraphicsEditMode.Arrange => _arrangerTools.GetValueOrDefault(ActiveArrangerTool),
-            GraphicsEditMode.Draw => _pixelTools.GetValueOrDefault(ActivePixelTool),
+            GraphicsEditMode.View => _viewTools.GetValueOrDefault(SelectedViewTool),
+            GraphicsEditMode.Arrange => _arrangerTools.GetValueOrDefault(SelectedArrangeTool),
+            GraphicsEditMode.Draw => _pixelTools.GetValueOrDefault(SelectedDrawTool),
             _ => null
         };
 
@@ -101,6 +103,7 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
         OnPropertyChanged(nameof(IsDrawMode));
         OnPropertyChanged(nameof(HasDrawClipRect));
         OnPropertyChanged(nameof(CanEditSelectedColor));
+        OnPropertyChanged(nameof(CanChangeSnapMode));
     }
 
     [ObservableProperty] private bool _canView;
@@ -139,7 +142,15 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
         InvalidateEditor(InvalidationLevel.Overlay);
     }
 
-    public bool CanChangeSnapMode { get; private set; }
+    private bool _canChangeSnapMode;
+    public bool CanChangeSnapMode => _canChangeSnapMode && !IsElementSelectToolActive;
+
+    private bool IsElementSelectToolActive => EditMode switch
+    {
+        GraphicsEditMode.View => SelectedViewTool == ViewTool.ElementSelect,
+        GraphicsEditMode.Arrange => SelectedArrangeTool == ArrangeTool.ElementSelect,
+        _ => false
+    };
     public bool CanAcceptPixelPastes { get; init; }
     public bool CanAcceptElementPastes { get; init; }
 
@@ -242,8 +253,10 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
 
     private HistoryAction? _activePencilHistory;
 
-    partial void OnActiveArrangerToolChanged(ArrangerTool oldValue, ArrangerTool newValue)
+    partial void OnSelectedArrangeToolChanged(ArrangeTool oldValue, ArrangeTool newValue)
     {
+        OnPropertyChanged(nameof(DisplayedArrangeTool));
+
         if (_arrangerTools.TryGetValue(oldValue, out var outgoing))
         {
             var historyAction = outgoing.Deactivate(this);
@@ -251,8 +264,13 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
                 AddHistoryAction(historyAction);
         }
 
-        if (newValue != ArrangerTool.Select && newValue != ArrangerTool.ApplyPalette)
+        if (newValue != ArrangeTool.ElementSelect && newValue != ArrangeTool.PixelSelect && newValue != ArrangeTool.ApplyPalette)
             CancelOverlay();
+
+        if (newValue == ArrangeTool.ElementSelect)
+            SnapMode = SnapMode.Element;
+
+        OnPropertyChanged(nameof(CanChangeSnapMode));
     }
 
     public GraphicsEditorViewModel(Arranger arranger, IInteractionService interactionService,
@@ -288,6 +306,7 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
 
         _selection = new ArrangerSelection(WorkingArranger, SnapMode);
         //Messenger.Register<ResourceRenamedMessage>(this, HandleResourceRenamed);
+        Messenger.Register<SaveConflictsDetectedMessage>(this, HandleSaveConflictsDetected);
     }
 
     private void Initialize()
@@ -302,7 +321,7 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
         else if (WorkingArranger.Layout == ElementLayout.Tiled)
         {
             SnapMode = SnapMode.Element;
-            CanChangeSnapMode = true;
+            _canChangeSnapMode = true;
         }
 
         if (WorkingArranger is SequentialArranger seqArr)
@@ -493,6 +512,14 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
     {
         if (ReferenceEquals(Resource, message.Resource))
             DisplayName = message.NewName;
+    }
+
+    private void HandleSaveConflictsDetected(object recipient, SaveConflictsDetectedMessage message)
+    {
+        if (!ReferenceEquals(message.Arranger, _projectArranger) && !ReferenceEquals(message.Arranger, WorkingArranger))
+            return;
+
+        // TODO: Notify user of save conflicts and handle in-progress local editor changes
     }
 
     public void NotifyColorTypeChanged()

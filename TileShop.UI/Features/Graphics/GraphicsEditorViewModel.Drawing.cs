@@ -54,9 +54,9 @@ public partial class GraphicsEditorViewModel
     }
 
     [RelayCommand]
-    public void ChangePixelTool(PixelTool tool)
+    public void ChangePixelTool(DrawTool tool)
     {
-        ActivePixelTool = tool;
+        SelectedDrawTool = tool;
     }
 
     [RelayCommand]
@@ -73,6 +73,9 @@ public partial class GraphicsEditorViewModel
     [RelayCommand]
     public void ToggleSnapMode()
     {
+        if (!CanChangeSnapMode)
+            return;
+
         if (SnapMode == SnapMode.Element)
             SnapMode = SnapMode.Pixel;
         else if (SnapMode == SnapMode.Pixel)
