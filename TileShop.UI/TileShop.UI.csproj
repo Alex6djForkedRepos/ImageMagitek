@@ -42,6 +42,7 @@
     <PackageReference Include="CommunityToolkit.Diagnostics" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Avalonia.Xaml.Behaviors" />
+<!--    <PackageReference Include="Xaml.Behaviors.Avalonia" />-->
     <PackageReference Include="PanAndZoom" />
     <PackageReference Include="Dock.Avalonia" />
     <PackageReference Include="Dock.Model.Mvvm" />
