@@ -302,6 +302,7 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
 
         _selection = new ArrangerSelection(WorkingArranger, SnapMode);
         //Messenger.Register<ResourceRenamedMessage>(this, HandleResourceRenamed);
+        Messenger.Register<SaveConflictsDetectedMessage>(this, HandleSaveConflictsDetected);
     }
 
     private void Initialize()
@@ -507,6 +508,14 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
     {
         if (ReferenceEquals(Resource, message.Resource))
             DisplayName = message.NewName;
+    }
+
+    private void HandleSaveConflictsDetected(object recipient, SaveConflictsDetectedMessage message)
+    {
+        if (!ReferenceEquals(message.Arranger, _projectArranger) && !ReferenceEquals(message.Arranger, WorkingArranger))
+            return;
+
+        // TODO: Notify user of save conflicts and handle in-progress local editor changes
     }
 
     public void NotifyColorTypeChanged()

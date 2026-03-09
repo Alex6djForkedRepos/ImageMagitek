@@ -20,3 +20,4 @@ public record ProjectUnloadedMessage();
 public record ResourceChangedMessage(IProjectResource Resource, ResourceModifyEffect Effect);
 public record ResourceRenamedMessage(IProjectResource Resource, string NewName, string OldName);
 public record ShowToolWindowMessage(ToolWindowKind ToolWindow);
+public record SaveConflictsDetectedMessage(Arranger Arranger, ElementSaveConflicts SaveConflicts);
