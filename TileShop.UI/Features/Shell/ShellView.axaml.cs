@@ -37,6 +37,7 @@ public partial class ShellView : Window
 
         _dockFactory.FocusedDockableChanged += Factory_FocusedDockableChanged;
 
+        _dock.Factory = _dockFactory;
         _dock.Layout = layout;
     }
 

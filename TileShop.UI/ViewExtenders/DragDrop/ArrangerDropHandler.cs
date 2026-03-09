@@ -1,14 +1,17 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactions.DragAndDrop;
+using Dock.Avalonia.Controls;
+using Dock.Model.Core;
 using ImageMagitek;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
 using TileShop.UI.Controls;
-using TileShop.UI.Features.Graphics;
 using TileShop.UI.Models;
 using TileShop.UI.ViewModels;
+using TileShop.UI.Views;
 
 namespace TileShop.UI.DragDrop;
 public class ArrangerDropHandler : DropHandlerBase
@@ -87,11 +90,47 @@ public class ArrangerDropHandler : DropHandlerBase
                 targetVm.PendingOperationMessage = $"Press [Enter] to Apply {pasteType} Paste or [Esc] to Cancel";
             }
 
-            // Focus the parent UserControl so key bindings (Enter/Esc) work
-            (control.Parent as Control)?.Focus();
+            // Activate the dock tab and focus the editor so key bindings (Enter/Esc) work
+            ActivateEditorDockTab(control);
             return true;
         }
 
         return false;
+    }
+
+    private static void ActivateEditorDockTab(Control control)
+    {
+        // Find the DockableEditorViewModel by walking up the visual tree
+        DockableEditorViewModel? dockableVm = null;
+        Control? view = control;
+        
+        foreach (var ancestor in control.GetVisualAncestors())
+        {
+            if (ancestor is Control { DataContext: DockableEditorViewModel dvm })
+            {
+                dockableVm = dvm;
+                break;
+            }
+        }
+
+        // Activate the dockable so the tab gets the :active pseudoclass
+        if (dockableVm is not null)
+        {
+            var dockControl = control.FindAncestorOfType<DockControl>();
+            if (dockControl?.Factory is { } factory)
+            {
+                factory.SetActiveDockable(dockableVm);
+                if (dockableVm.Owner is IDock owner)
+                    factory.SetFocusedDockable(owner, dockableVm);
+            }
+        }
+
+        foreach (var ancestor in control.GetVisualAncestors())
+        {
+            if (ancestor is GraphicsEditorView gev)
+            {
+                gev.Focus();
+            }
+        }
     }
 }
