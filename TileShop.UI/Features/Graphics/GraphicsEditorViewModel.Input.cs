@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using ImageMagitek;
 using ImageMagitek.Codec;
+using ImageMagitek.Colors;
 using TileShop.Shared.Input;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
@@ -266,6 +267,34 @@ public partial class GraphicsEditorViewModel
         {
             var notifyMessage = $"{arranger.Name}: ({xc}, {yc})";
             ActivityMessage = notifyMessage;
+        }
+    }
+
+    internal void InspectPaletteAtPosition(int xc, int yc)
+    {
+        var elX = xc / WorkingArranger.ElementPixelSize.Width;
+        var elY = yc / WorkingArranger.ElementPixelSize.Height;
+        var el = WorkingArranger.GetElement(elX, elY);
+
+        if (el is { Codec: IIndexedCodec codec })
+        {
+            var palette = codec.Palette;
+            var sourceName = palette.DataSource switch
+            {
+                FileDataSource fds => fds.FileLocation,
+                MemoryDataSource => "Memory",
+                _ => palette.StorageSource == PaletteStorageSource.GlobalJson ? "Global" : "None"
+            };
+
+            ActivityMessage = $"Palette: {palette.Name}, Colors {palette.Entries}, Model {Palette.ColorModelToString(palette.ColorModel)}, Source {sourceName}";
+        }
+        else if (el is not null)
+        {
+            ActivityMessage = $"Element ({elX}, {elY}): Not indexed color";
+        }
+        else
+        {
+            ActivityMessage = $"Element ({elX}, {elY}): Empty";
         }
     }
 
