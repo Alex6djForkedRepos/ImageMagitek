@@ -80,7 +80,7 @@ public partial class GraphicsEditorView : UserControl
         if (ViewModel?.LastMousePosition is { } point)
         {
             var state = InputAdapter.CreateKeyState(e.Key, e.KeyModifiers);
-            ViewModel.KeyPress(state, point.X, point.Y);
+            e.Handled = ViewModel.KeyPress(state, point.X, point.Y);
         }
     }
 
