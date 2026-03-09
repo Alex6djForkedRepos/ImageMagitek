@@ -50,6 +50,12 @@ public class ArrangerDropHandler : DropHandlerBase
 
     public override void Enter(object? sender, DragEventArgs e, object? sourceContext, object? targetContext)
     {
+        if (targetContext is GraphicsEditorViewModel { Selection.HasSelection: true } targetVm)
+        {
+            targetVm.Selection = new ArrangerSelection(targetVm.WorkingArranger, targetVm.SnapMode);
+            targetVm.InvalidateEditor(InvalidationLevel.Overlay);
+        }
+
         base.Enter(sender, e, sourceContext, targetContext);
     }
 
