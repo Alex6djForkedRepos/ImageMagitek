@@ -145,8 +145,8 @@ public partial class GraphicsEditorViewModel
 
         LastMousePosition = new Point(xc, yc);
 
-        // Shift+move in arranger mode for single-element selection
-        if (EditMode == GraphicsEditMode.Arrange && mouseState.Modifiers.HasFlag(KeyModifiers.Shift) && Paste is null)
+        // Shift+move in arranger mode for single-element selection (only when not overridden by modifier tool)
+        if (EditMode == GraphicsEditMode.Arrange && _modifierOverrideTool is null && mouseState.Modifiers.HasFlag(KeyModifiers.Shift) && Paste is null)
         {
             if (TryStartNewSingleSelection(x, y))
             {
@@ -186,13 +186,8 @@ public partial class GraphicsEditorViewModel
 
     public bool KeyPress(KeyState keyState, double? x, double? y)
     {
-        if (!x.HasValue || !y.HasValue)
-            return false;
-
-        int xc = Math.Clamp((int)x.Value, 0, WorkingArranger.ArrangerPixelSize.Width - 1);
-        int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
-
         // Handle modifier key override (e.g., Alt/Shift pushes picker tool)
+        // This must work even when the mouse is not hovering over the image
         if (_modifierOverrideTool is null &&
             (AlternativeToolKeys.Contains(keyState.Key) || TertiaryToolKeys.Contains(keyState.Key)))
         {
@@ -210,6 +205,12 @@ public partial class GraphicsEditorViewModel
             }
         }
 
+        if (!x.HasValue || !y.HasValue)
+            return false;
+
+        int xc = Math.Clamp((int)x.Value, 0, WorkingArranger.ArrangerPixelSize.Width - 1);
+        int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
+
         var ctx = new ToolContext(x.Value, y.Value, xc, yc, keyState);
         var tool = ResolveActiveTool();
 
@@ -221,13 +222,7 @@ public partial class GraphicsEditorViewModel
 
     public void KeyUp(KeyState keyState, double? x, double? y)
     {
-        if (!x.HasValue || !y.HasValue)
-            return;
-
-        int xc = Math.Clamp((int)x.Value, 0, WorkingArranger.ArrangerPixelSize.Width - 1);
-        int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
-
-        // Release modifier override
+        // Release modifier override - must work even when mouse is not hovering
         if (_modifierOverrideTool is not null &&
             (AlternativeToolKeys.Contains(keyState.Key) || TertiaryToolKeys.Contains(keyState.Key)))
         {
@@ -236,6 +231,12 @@ public partial class GraphicsEditorViewModel
             OnPropertyChanged(nameof(DisplayedArrangeTool));
             return;
         }
+
+        if (!x.HasValue || !y.HasValue)
+            return;
+
+        int xc = Math.Clamp((int)x.Value, 0, WorkingArranger.ArrangerPixelSize.Width - 1);
+        int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
 
         var ctx = new ToolContext(x.Value, y.Value, xc, yc, keyState);
         var tool = ResolveActiveTool();
