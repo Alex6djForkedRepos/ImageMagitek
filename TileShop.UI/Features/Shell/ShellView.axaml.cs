@@ -1,6 +1,9 @@
 using System;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using Dock.Model.Core.Events;
 using TileShop.Shared.Interactions;
@@ -46,6 +49,14 @@ public partial class ShellView : Window
         if (e.Dockable is DockableEditorViewModel dock)
         {
             _viewModel.Editors.ActiveEditor = dock.Editor;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                var focusTarget = _dock.GetVisualDescendants()
+                    .OfType<Control>()
+                    .FirstOrDefault(c => c.Focusable && c.DataContext == dock.Editor);
+                focusTarget?.Focus();
+            }, DispatcherPriority.Loaded);
         }
     }
 

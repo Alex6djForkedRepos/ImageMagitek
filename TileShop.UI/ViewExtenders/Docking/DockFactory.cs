@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using Dock.Avalonia.Controls;
 using Dock.Model.Controls;
@@ -92,8 +93,29 @@ public class DockFactory : Factory
         _rootDock.VisibleDockables = CreateList<IDockable>(_mainLayout);
 
         _editorsVm.Editors.CollectionChanged += Editors_CollectionChanged;
+        _editorsVm.PropertyChanged += EditorsVm_PropertyChanged;
 
         return _rootDock;
+    }
+
+    private void EditorsVm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(EditorsViewModel.ActiveEditor) || _documentDock is null)
+            return;
+
+        var editor = _editorsVm.ActiveEditor;
+        if (editor is null)
+            return;
+
+        var dockable = _documentDock.VisibleDockables?
+            .OfType<DockableEditorViewModel>()
+            .FirstOrDefault(x => x.Editor == editor);
+
+        if (dockable is not null && _documentDock.ActiveDockable != dockable)
+        {
+            SetActiveDockable(dockable);
+            SetFocusedDockable(_documentDock, dockable);
+        }
     }
 
     private void Editors_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls;
+using System.Linq;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -11,7 +12,6 @@ using TileShop.Shared.Tools;
 using TileShop.UI.Controls;
 using TileShop.UI.Models;
 using TileShop.UI.ViewModels;
-using TileShop.UI.Views;
 
 namespace TileShop.UI.DragDrop;
 public class ArrangerDropHandler : DropHandlerBase
@@ -90,7 +90,6 @@ public class ArrangerDropHandler : DropHandlerBase
                 targetVm.PendingOperationMessage = $"Press [Enter] to Apply {pasteType} Paste or [Esc] to Cancel";
             }
 
-            // Activate the dock tab and focus the editor so key bindings (Enter/Esc) work
             ActivateEditorDockTab(control);
             return true;
         }
@@ -98,39 +97,27 @@ public class ArrangerDropHandler : DropHandlerBase
         return false;
     }
 
+    /// <summary>
+    /// Activates the dock tab containing the drop target.
+    /// Focus is handled separately by ShellView via FocusedDockableChanged.
+    /// </summary>
     private static void ActivateEditorDockTab(Control control)
     {
-        // Find the DockableEditorViewModel by walking up the visual tree
-        DockableEditorViewModel? dockableVm = null;
-        Control? view = control;
-        
-        foreach (var ancestor in control.GetVisualAncestors())
-        {
-            if (ancestor is Control { DataContext: DockableEditorViewModel dvm })
-            {
-                dockableVm = dvm;
-                break;
-            }
-        }
+        var dockControl = control.FindAncestorOfType<DockControl>();
+        if (dockControl?.Factory is not { } factory)
+            return;
 
-        // Activate the dockable so the tab gets the :active pseudoclass
-        if (dockableVm is not null)
-        {
-            var dockControl = control.FindAncestorOfType<DockControl>();
-            if (dockControl?.Factory is { } factory)
-            {
-                factory.SetActiveDockable(dockableVm);
-                if (dockableVm.Owner is IDock owner)
-                    factory.SetFocusedDockable(owner, dockableVm);
-            }
-        }
+        var dockableVm = control.GetVisualAncestors()
+            .OfType<Control>()
+            .Select(c => c.DataContext)
+            .OfType<DockableEditorViewModel>()
+            .FirstOrDefault();
 
-        foreach (var ancestor in control.GetVisualAncestors())
-        {
-            if (ancestor is GraphicsEditorView gev)
-            {
-                gev.Focus();
-            }
-        }
+        if (dockableVm is null)
+            return;
+
+        factory.SetActiveDockable(dockableVm);
+        if (dockableVm.Owner is IDock owner)
+            factory.SetFocusedDockable(owner, dockableVm);
     }
 }
