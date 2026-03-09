@@ -18,6 +18,7 @@ using TileShop.Shared.Interactions;
 using TileShop.Shared.Messages;
 using TileShop.Shared.Models;
 using TileShop.Shared.Tools;
+using Avalonia.Media;
 using TileShop.UI.Features.Graphics;
 using TileShop.UI.Imaging;
 using TileShop.UI.Models;
@@ -52,6 +53,7 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
     [ObservableProperty] private BitmapAdapter _bitmapAdapter = null!;
     [ObservableProperty] private string _activityMessage = "";
     [ObservableProperty] private string _pendingOperationMessage = "";
+    [ObservableProperty] private ISolidColorBrush? _activityBrush;
 
     public bool IsSingleLayout => WorkingArranger.Layout == ElementLayout.Single;
     public bool IsTiledLayout => WorkingArranger.Layout == ElementLayout.Tiled;

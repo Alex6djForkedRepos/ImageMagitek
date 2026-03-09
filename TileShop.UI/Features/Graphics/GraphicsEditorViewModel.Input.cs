@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Avalonia.Media;
 using ImageMagitek;
 using ImageMagitek.Codec;
 using ImageMagitek.Colors;
@@ -249,6 +250,7 @@ public partial class GraphicsEditorViewModel
 
     internal void UpdateActivityMessage(int xc, int yc)
     {
+        ActivityBrush = null;
         var arranger = WorkingArranger;
 
         if (Selection.HasSelection)
@@ -270,8 +272,46 @@ public partial class GraphicsEditorViewModel
         }
     }
 
+    internal void InspectColorAtPosition(int xc, int yc)
+    {
+        var elX = xc / WorkingArranger.ElementPixelSize.Width;
+        var elY = yc / WorkingArranger.ElementPixelSize.Height;
+        var el = WorkingArranger.GetElement(elX, elY);
+
+        if (el is { Codec: IIndexedCodec codec })
+        {
+            var palette = codec.Palette;
+            var colorIndex = _imageAdapter.GetIndexedPixel(xc, yc);
+            var nativeColor = palette.GetNativeColor(colorIndex);
+            var foreignColor = palette.GetForeignColor(colorIndex);
+
+            ActivityBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(nativeColor.R, nativeColor.G, nativeColor.B));
+
+            var foreignHex = $"0x{foreignColor.Color:X}";
+            ActivityMessage = $"Color ({xc}, {yc}): Index {colorIndex}, {Palette.ColorModelToString(palette.ColorModel)} {foreignHex}, Rgba32 ({nativeColor.R}, {nativeColor.G}, {nativeColor.B}, {nativeColor.A})";
+        }
+        else if (el is { Codec: IDirectCodec })
+        {
+            var color = _imageAdapter.GetDirectPixel(xc, yc);
+
+            ActivityBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(color.R, color.G, color.B));
+            ActivityMessage = $"Color ({xc}, {yc}): Rgba32 ({color.R}, {color.G}, {color.B}, {color.A})";
+        }
+        else if (el is not null)
+        {
+            ActivityBrush = null;
+            ActivityMessage = $"Element ({elX}, {elY}): No color data";
+        }
+        else
+        {
+            ActivityBrush = null;
+            ActivityMessage = $"Element ({elX}, {elY}): Empty";
+        }
+    }
+
     internal void InspectPaletteAtPosition(int xc, int yc)
     {
+        ActivityBrush = null;
         var elX = xc / WorkingArranger.ElementPixelSize.Width;
         var elY = yc / WorkingArranger.ElementPixelSize.Height;
         var el = WorkingArranger.GetElement(elX, elY);
@@ -300,6 +340,7 @@ public partial class GraphicsEditorViewModel
 
     internal void InspectElementAtPosition(int xc, int yc)
     {
+        ActivityBrush = null;
         var elX = xc / WorkingArranger.ElementPixelSize.Width;
         var elY = yc / WorkingArranger.ElementPixelSize.Height;
         var el = WorkingArranger.GetElement(elX, elY);
