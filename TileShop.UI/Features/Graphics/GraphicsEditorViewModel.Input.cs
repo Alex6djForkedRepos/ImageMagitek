@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using ImageMagitek;
 using ImageMagitek.Codec;
 using TileShop.Shared.Input;
@@ -13,8 +14,8 @@ namespace TileShop.UI.ViewModels;
 public partial class GraphicsEditorViewModel
 {
     public Point? LastMousePosition { get; private set; }
-    public Key PrimaryAltKey { get; private set; } = Key.LeftAlt;
-    public Key SecondaryAltKey { get; private set; } = Key.LeftShift;
+    public IReadOnlyList<Key> AlternativeToolKeys { get; } = [Key.LeftAlt, Key.RightAlt];
+    public IReadOnlyList<Key> TertiaryToolKeys { get; } = [Key.LeftShift, Key.RightShift];
 
     private readonly Dictionary<ArrangeTool, IToolHandler<GraphicsEditorViewModel>> _arrangerTools = new()
     {
@@ -64,8 +65,13 @@ public partial class GraphicsEditorViewModel
         if (_modifierOverrideTool is not null)
             return _modifierOverrideTool;
 
-        if (EditMode == GraphicsEditMode.Draw && modifiers.HasFlag(KeyModifiers.Alt))
-            return _pixelTools[DrawTool.ColorPicker];
+        if (modifiers.HasFlag(KeyModifiers.Alt))
+        {
+            if (EditMode == GraphicsEditMode.Draw)
+                return _pixelTools[DrawTool.ColorPicker];
+            if (EditMode == GraphicsEditMode.Arrange)
+                return _arrangerTools[ArrangeTool.PickPalette];
+        }
 
         return ResolveActiveTool();
     }
@@ -186,11 +192,20 @@ public partial class GraphicsEditorViewModel
         int xc = Math.Clamp((int)x.Value, 0, WorkingArranger.ArrangerPixelSize.Width - 1);
         int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
 
-        // Handle modifier key override (e.g., Alt pushes ColorPicker in pixel mode)
-        if (EditMode == GraphicsEditMode.Draw && keyState.Key == SecondaryAltKey && _modifierOverrideTool is null)
+        // Handle modifier key override (e.g., Alt/Shift pushes picker tool)
+        if (_modifierOverrideTool is null &&
+            (AlternativeToolKeys.Contains(keyState.Key) || TertiaryToolKeys.Contains(keyState.Key)))
         {
-            _modifierOverrideTool = _pixelTools[DrawTool.ColorPicker];
-            return true;
+            if (EditMode == GraphicsEditMode.Draw)
+            {
+                _modifierOverrideTool = _pixelTools[DrawTool.ColorPicker];
+                return true;
+            }
+            else if (EditMode == GraphicsEditMode.Arrange)
+            {
+                _modifierOverrideTool = _arrangerTools[ArrangeTool.PickPalette];
+                return true;
+            }
         }
 
         var ctx = new ToolContext(x.Value, y.Value, xc, yc, keyState);
@@ -211,7 +226,8 @@ public partial class GraphicsEditorViewModel
         int yc = Math.Clamp((int)y.Value, 0, WorkingArranger.ArrangerPixelSize.Height - 1);
 
         // Release modifier override
-        if (keyState.Key == SecondaryAltKey && _modifierOverrideTool is not null)
+        if (_modifierOverrideTool is not null &&
+            (AlternativeToolKeys.Contains(keyState.Key) || TertiaryToolKeys.Contains(keyState.Key)))
         {
             _modifierOverrideTool = null;
             return;
