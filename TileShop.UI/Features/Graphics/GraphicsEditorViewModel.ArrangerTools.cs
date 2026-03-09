@@ -20,10 +20,16 @@ namespace TileShop.UI.ViewModels;
 public partial class GraphicsEditorViewModel
 {
     [ObservableProperty] private bool _isPencilDrawing;
-    [ObservableProperty] private DrawTool _activeDrawTool = DrawTool.Pencil;
-    [ObservableProperty] private ArrangeTool _activeArrangeTool = ArrangeTool.ElementSelect;
-    [ObservableProperty] private ViewTool _activeViewTool = ViewTool.ElementSelect;
-    partial void OnActiveViewToolChanged(ViewTool value)
+    [ObservableProperty] private DrawTool _selectedDrawTool = DrawTool.Pencil;
+    [ObservableProperty] private ArrangeTool _selectedArrangeTool = ArrangeTool.ElementSelect;
+    [ObservableProperty] private ViewTool _selectedViewTool = ViewTool.ElementSelect;
+
+    public DrawTool DisplayedDrawTool => _modifierOverrideTool is not null && EditMode == GraphicsEditMode.Draw
+        ? DrawTool.ColorPicker : SelectedDrawTool;
+
+    public ArrangeTool DisplayedArrangeTool => _modifierOverrideTool is not null && EditMode == GraphicsEditMode.Arrange
+        ? ArrangeTool.PickPalette : SelectedArrangeTool;
+    partial void OnSelectedViewToolChanged(ViewTool value)
     {
         if (value == ViewTool.ElementSelect)
             SnapMode = SnapMode.Element;
@@ -33,8 +39,10 @@ public partial class GraphicsEditorViewModel
 
     [ObservableProperty] private bool _areSymmetryToolsEnabled;
 
-    partial void OnActiveDrawToolChanged(DrawTool oldValue, DrawTool newValue)
+    partial void OnSelectedDrawToolChanged(DrawTool oldValue, DrawTool newValue)
     {
+        OnPropertyChanged(nameof(DisplayedDrawTool));
+
         if (_pixelTools.TryGetValue(oldValue, out var outgoing))
         {
             var historyAction = outgoing.Deactivate(this);
@@ -46,13 +54,13 @@ public partial class GraphicsEditorViewModel
     [RelayCommand]
     public void ChangeViewTool(ViewTool tool)
     {
-        ActiveViewTool = tool;
+        SelectedViewTool = tool;
     }
 
     [RelayCommand]
     public void ChangeArrangerTool(ArrangeTool tool)
     {
-        ActiveArrangeTool = tool;
+        SelectedArrangeTool = tool;
     }
 
     [RelayCommand]
@@ -61,8 +69,8 @@ public partial class GraphicsEditorViewModel
         AreSymmetryToolsEnabled = !AreSymmetryToolsEnabled;
     }
 
-    public void SetSelectToolMode() => ActiveArrangeTool = ArrangeTool.ElementSelect;
-    public void SetApplyPaletteMode() => ActiveArrangeTool = ArrangeTool.ApplyPalette;
+    public void SetSelectToolMode() => SelectedArrangeTool = ArrangeTool.ElementSelect;
+    public void SetApplyPaletteMode() => SelectedArrangeTool = ArrangeTool.ApplyPalette;
 
     [RelayCommand]
     public void ToggleGridlineVisibility()

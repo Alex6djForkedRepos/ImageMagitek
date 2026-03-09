@@ -45,9 +45,6 @@ public partial class GraphicsEditorView : UserControl
         EditorCanvas.PointerWheelChanged += CanvasOnPointerWheelChanged;
         EditorCanvas.PointerCaptureLost += CanvasOnPointerCaptureLost;
         EditorCanvas.ContextRequested += CanvasOnContextRequested;
-
-        KeyDown += OnKeyDown;
-        KeyUp += OnKeyUp;
     }
 
     private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)

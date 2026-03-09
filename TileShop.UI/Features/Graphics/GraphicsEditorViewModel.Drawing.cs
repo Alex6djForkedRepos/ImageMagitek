@@ -56,7 +56,7 @@ public partial class GraphicsEditorViewModel
     [RelayCommand]
     public void ChangePixelTool(DrawTool tool)
     {
-        ActiveDrawTool = tool;
+        SelectedDrawTool = tool;
     }
 
     [RelayCommand]

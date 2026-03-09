@@ -68,9 +68,9 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
         // Deactivate the outgoing tool (Display mode has no tools)
         IToolHandler<GraphicsEditorViewModel>? outgoingTool = oldValue switch
         {
-            GraphicsEditMode.View => _viewTools.GetValueOrDefault(ActiveViewTool),
-            GraphicsEditMode.Arrange => _arrangerTools.GetValueOrDefault(ActiveArrangeTool),
-            GraphicsEditMode.Draw => _pixelTools.GetValueOrDefault(ActiveDrawTool),
+            GraphicsEditMode.View => _viewTools.GetValueOrDefault(SelectedViewTool),
+            GraphicsEditMode.Arrange => _arrangerTools.GetValueOrDefault(SelectedArrangeTool),
+            GraphicsEditMode.Draw => _pixelTools.GetValueOrDefault(SelectedDrawTool),
             _ => null
         };
 
@@ -145,8 +145,8 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
 
     private bool IsElementSelectToolActive => EditMode switch
     {
-        GraphicsEditMode.View => ActiveViewTool == ViewTool.ElementSelect,
-        GraphicsEditMode.Arrange => ActiveArrangeTool == ArrangeTool.ElementSelect,
+        GraphicsEditMode.View => SelectedViewTool == ViewTool.ElementSelect,
+        GraphicsEditMode.Arrange => SelectedArrangeTool == ArrangeTool.ElementSelect,
         _ => false
     };
     public bool CanAcceptPixelPastes { get; init; }
@@ -251,8 +251,10 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
 
     private HistoryAction? _activePencilHistory;
 
-    partial void OnActiveArrangeToolChanged(ArrangeTool oldValue, ArrangeTool newValue)
+    partial void OnSelectedArrangeToolChanged(ArrangeTool oldValue, ArrangeTool newValue)
     {
+        OnPropertyChanged(nameof(DisplayedArrangeTool));
+
         if (_arrangerTools.TryGetValue(oldValue, out var outgoing))
         {
             var historyAction = outgoing.Deactivate(this);

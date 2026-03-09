@@ -14,7 +14,7 @@ namespace TileShop.UI.ViewModels;
 public partial class GraphicsEditorViewModel
 {
     public Point? LastMousePosition { get; private set; }
-    public IReadOnlyList<Key> AlternativeToolKeys { get; } = [Key.LeftAlt, Key.RightAlt];
+    public IReadOnlyList<Key> AlternativeToolKeys { get; } = [Key.LeftControl, Key.RightControl];
     public IReadOnlyList<Key> TertiaryToolKeys { get; } = [Key.LeftShift, Key.RightShift];
 
     private readonly Dictionary<ArrangeTool, IToolHandler<GraphicsEditorViewModel>> _arrangerTools = new()
@@ -53,9 +53,9 @@ public partial class GraphicsEditorViewModel
 
         return EditMode switch
         {
-            GraphicsEditMode.View => _viewTools[ActiveViewTool],
-            GraphicsEditMode.Arrange => _arrangerTools[ActiveArrangeTool],
-            GraphicsEditMode.Draw => _pixelTools[ActiveDrawTool],
+            GraphicsEditMode.View => _viewTools[SelectedViewTool],
+            GraphicsEditMode.Arrange => _arrangerTools[SelectedArrangeTool],
+            GraphicsEditMode.Draw => _pixelTools[SelectedDrawTool],
             _ => null
         };
     }
@@ -199,11 +199,13 @@ public partial class GraphicsEditorViewModel
             if (EditMode == GraphicsEditMode.Draw)
             {
                 _modifierOverrideTool = _pixelTools[DrawTool.ColorPicker];
+                OnPropertyChanged(nameof(DisplayedDrawTool));
                 return true;
             }
             else if (EditMode == GraphicsEditMode.Arrange)
             {
                 _modifierOverrideTool = _arrangerTools[ArrangeTool.PickPalette];
+                OnPropertyChanged(nameof(DisplayedArrangeTool));
                 return true;
             }
         }
@@ -230,6 +232,8 @@ public partial class GraphicsEditorViewModel
             (AlternativeToolKeys.Contains(keyState.Key) || TertiaryToolKeys.Contains(keyState.Key)))
         {
             _modifierOverrideTool = null;
+            OnPropertyChanged(nameof(DisplayedDrawTool));
+            OnPropertyChanged(nameof(DisplayedArrangeTool));
             return;
         }
 
