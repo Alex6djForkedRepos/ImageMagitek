@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -76,7 +77,7 @@ public partial class GraphicsEditorViewModel
     }
 
     [RelayCommand]
-    public void PasteFromClipboard()
+    public async Task PasteFromClipboardAsync()
     {
         if (_clipboard is null)
             return;
@@ -88,7 +89,9 @@ public partial class GraphicsEditorViewModel
 
         if (!isElementPasteInArrangeMode && EditMode != GraphicsEditMode.Draw)
         {
-            EditMode = GraphicsEditMode.Draw;
+            await ChangeEditModeAsync(GraphicsEditMode.Draw);
+            if (EditMode != GraphicsEditMode.Draw)
+                return;
         }
 
         CancelOverlay();

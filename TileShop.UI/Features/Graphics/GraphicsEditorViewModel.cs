@@ -522,6 +522,39 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
         // TODO: Notify user of save conflicts and handle in-progress local editor changes
     }
 
+    [RelayCommand]
+    private async Task ChangeEditModeAsync(GraphicsEditMode newMode)
+    {
+        if (newMode == EditMode)
+            return;
+
+        if (IsModified)
+        {
+            var result = await _interactions.PromptAsync(
+                PromptChoices.YesNoCancel,
+                "Save Changes",
+                $"'{DisplayName}' has been modified. Save changes before switching modes?");
+
+            if (result == PromptResult.Cancel)
+            {
+                // Ensure the View resets the state
+                var current = EditMode;
+                _editMode = newMode;
+                OnPropertyChanged(nameof(EditMode));
+                _editMode = current;
+                OnPropertyChanged(nameof(EditMode));
+                return;
+            }
+
+            if (result == PromptResult.Accept)
+                await SaveChangesInternalAsync();
+            else if (result == PromptResult.Reject)
+                DiscardChanges();
+        }
+
+        EditMode = newMode;
+    }
+
     public void NotifyColorTypeChanged()
     {
         OnPropertyChanged(nameof(IsIndexedColor));
