@@ -1,9 +1,11 @@
 ﻿using System;
 using Avalonia;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using TileShop.Shared.Models;
+using TileShop.UI.Features.Graphics;
 using TileShop.UI.Models;
 using TileShop.UI.ViewModels;
 
@@ -42,6 +44,10 @@ public static class AppConverters
                 _ => throw new InvalidOperationException($"{nameof(NumericBaseToString)} cannot convert from given type {x.GetType()} with value {x}"),
             };
         });
+
+    public static IValueConverter EditModeToScrollBarVisibility { get; } =
+        new FuncValueConverter<GraphicsEditMode, ScrollBarVisibility>(x =>
+            x == GraphicsEditMode.View ? ScrollBarVisibility.Visible : ScrollBarVisibility.Hidden);
 
     public static IValueConverter ZoomToInverted { get; } =
         new FuncValueConverter<double, double>(x => 1 / x);
