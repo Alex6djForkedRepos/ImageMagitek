@@ -166,10 +166,28 @@ public class Palette : IProjectResource
     /// </summary>
     private IColor[] LoadForeignPalette()
     {
-        Guard.IsNotNull(DataSource);
-        Guard.IsTrue(StorageSource == PaletteStorageSource.ProjectXml);
+        if (StorageSource == PaletteStorageSource.ProjectXml)
+        {
+            Guard.IsNotNull(DataSource);
+            return _colorSerializer.LoadColors(ColorSources, DataSource, ColorModel, Entries);
+        }
+        
+        if (StorageSource == PaletteStorageSource.GlobalJson)
+        {
+            var foreignPalette = new IColor[Entries];
 
-        return _colorSerializer.LoadColors(ColorSources, DataSource, ColorModel, Entries);
+            for (int i = 0; i < Entries; i++)
+            {
+                if (ColorSources[i] is ProjectForeignColorSource foreignColor)
+                    foreignPalette[i] = foreignColor.Value;
+                else if (ColorSources[i] is ProjectNativeColorSource nativeColor)
+                    foreignPalette[i] = _colorFactory.ToForeign(nativeColor.Value, ColorModel);
+            }
+
+            return foreignPalette;
+        }
+
+        throw new NotSupportedException($"{nameof(LoadForeignPalette)}: {nameof(PaletteStorageSource)} of type '{StorageSource}' is not supported");
     }
 
     /// <summary>
