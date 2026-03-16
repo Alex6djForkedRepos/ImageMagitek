@@ -4,11 +4,72 @@
     xmlns:cc="https://github.com/stevemonaco/TileShop"
     xmlns:vm="using:TileShop.UI.ViewModels"
     x:DataType="vm:ProjectTreeViewModel">
-    <TreeView x:Name="_treeView" Background="Transparent" DoubleTapped="ProjectTree_DoubleTapped"
+    <UserControl.Resources>
+        <ContextMenu x:Key="ProjectContextMenu" x:DataType="vm:ProjectNodeViewModel">
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewFolderCommand}" CommandParameter="{Binding}" Header="Add New Folder..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewDataFileCommand}" CommandParameter="{Binding}" Header="Add Existing Data File..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewScatteredArrangerCommand}" CommandParameter="{Binding}" Header="Add New Scattered Arranger..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewPaletteCommand}" CommandParameter="{Binding}" Header="Add New Palette..." />
+            <Separator />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).SaveProjectAsCommand}" CommandParameter="{Binding}" Header="Save Project As..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).CloseProjectCommand}" CommandParameter="{Binding}" Header="Close Project" />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename Project..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
+        </ContextMenu>
+
+        <ContextMenu x:Key="FolderContextMenu" x:DataType="vm:FolderNodeViewModel">
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewFolderCommand}" CommandParameter="{Binding}" Header="Add New Folder..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewDataFileCommand}" CommandParameter="{Binding}" Header="Add Existing Data File..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewScatteredArrangerCommand}" CommandParameter="{Binding}" Header="Add New Scattered Arranger..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewPaletteCommand}" CommandParameter="{Binding}" Header="Add New Palette..." />
+            <Separator />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
+        </ContextMenu>
+
+        <ContextMenu x:Key="DataFileContextMenu" x:DataType="vm:DataFileNodeViewModel">
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
+        </ContextMenu>
+
+        <ContextMenu x:Key="ArrangerContextMenu" x:DataType="vm:ArrangerNodeViewModel">
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExportArrangerNodeAsCommand}" CommandParameter="{Binding}" Header="Export As..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ImportArrangerNodeFromCommand}" CommandParameter="{Binding}" Header="Import From..." />
+            <Separator />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
+        </ContextMenu>
+
+        <ContextMenu x:Key="PaletteContextMenu" x:DataType="vm:PaletteNodeViewModel">
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
+            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
+        </ContextMenu>
+    </UserControl.Resources>
+
+    <TreeView x:Name="_treeView" Padding="0" Background="Transparent" DoubleTapped="ProjectTree_DoubleTapped"
         ItemsSource="{Binding Projects}" KeyDown="ProjectTree_KeyDown" SelectedItem="{Binding SelectedNode}">
         <TreeView.Styles>
             <Style x:DataType="vm:ResourceNodeViewModel" Selector="TreeViewItem">
                 <Setter Property="IsExpanded" Value="{Binding IsExpanded}" />
+            </Style>
+            <Style x:DataType="vm:ProjectNodeViewModel" Selector="TreeViewItem">
+                <Setter Property="ContextMenu" Value="{StaticResource ProjectContextMenu}" />
+            </Style>
+            <Style x:DataType="vm:FolderNodeViewModel" Selector="TreeViewItem">
+                <Setter Property="ContextMenu" Value="{StaticResource FolderContextMenu}" />
+            </Style>
+            <Style x:DataType="vm:DataFileNodeViewModel" Selector="TreeViewItem">
+                <Setter Property="ContextMenu" Value="{StaticResource DataFileContextMenu}" />
+            </Style>
+            <Style x:DataType="vm:ArrangerNodeViewModel" Selector="TreeViewItem">
+                <Setter Property="ContextMenu" Value="{StaticResource ArrangerContextMenu}" />
+            </Style>
+            <Style x:DataType="vm:PaletteNodeViewModel" Selector="TreeViewItem">
+                <Setter Property="ContextMenu" Value="{StaticResource ProjectContextMenu}" />
             </Style>
         </TreeView.Styles>
         <TreeView.ItemTemplate>
@@ -19,84 +80,44 @@
         <TreeView.DataTemplates>
             <TreeDataTemplate x:DataType="vm:ProjectNodeViewModel" DataType="vm:ProjectNodeViewModel" ItemsSource="{Binding Children}">
                 <Grid ColumnDefinitions="auto,*">
-                    <Grid.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewFolderCommand}" CommandParameter="{Binding}" Header="Add New Folder..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewDataFileCommand}" CommandParameter="{Binding}" Header="Add Existing Data File..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewScatteredArrangerCommand}" CommandParameter="{Binding}" Header="Add New Scattered Arranger..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewPaletteCommand}" CommandParameter="{Binding}" Header="Add New Palette..." />
-                            <Separator />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).SaveProjectAsCommand}" CommandParameter="{Binding}" Header="Save Project As..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).CloseProjectCommand}" CommandParameter="{Binding}" Header="Close Project" />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename Project..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
-                        </ContextMenu>
-                    </Grid.ContextMenu>
-                    <PathIcon Grid.Column="0" Classes="small" Data="{x:Static cc:AppIcons.NodeProject}" />
+                    <Image Classes="resource-icon-medium" Source="{x:Static cc:AppIcons.NewNodeProject}" />
                     <TextBlock Grid.Column="1" Margin="4,0,0,0" Text="{Binding Name}" />
                 </Grid>
             </TreeDataTemplate>
 
             <TreeDataTemplate x:DataType="vm:FolderNodeViewModel" DataType="vm:FolderNodeViewModel" ItemsSource="{Binding Children}">
                 <StackPanel Orientation="Horizontal">
-                    <StackPanel.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewFolderCommand}" CommandParameter="{Binding}" Header="Add New Folder..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewDataFileCommand}" CommandParameter="{Binding}" Header="Add Existing Data File..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewScatteredArrangerCommand}" CommandParameter="{Binding}" Header="Add New Scattered Arranger..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).AddNewPaletteCommand}" CommandParameter="{Binding}" Header="Add New Palette..." />
-                            <Separator />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
-                        </ContextMenu>
-                    </StackPanel.ContextMenu>
-                    <PathIcon Classes="small vflip" Data="{x:Static cc:AppIcons.NodeFolder}" />
+                    <Image Classes="resource-icon-medium" Classes.open="{Binding IsExpanded}">
+                        <Image.Styles>
+                            <Style Selector="Image">
+                                <Setter Property="Source" Value="{x:Static cc:AppIcons.NewNodeFolder}" />
+                                <Style Selector="^.open">
+                                    <Setter Property="Source" Value="{x:Static cc:AppIcons.NewNodeFolderOpen}" />
+                                </Style>
+                            </Style>
+                        </Image.Styles>
+                    </Image>
                     <TextBlock Margin="4,0,0,0" Text="{Binding Name}" />
                 </StackPanel>
             </TreeDataTemplate>
 
             <TreeDataTemplate x:DataType="vm:DataFileNodeViewModel" DataType="vm:DataFileNodeViewModel" ItemsSource="{Binding Children}">
                 <StackPanel Orientation="Horizontal">
-                    <StackPanel.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
-                        </ContextMenu>
-                    </StackPanel.ContextMenu>
-                    <PathIcon Classes="small" Data="{x:Static cc:AppIcons.NodeFile}" />
+                    <Image Classes="resource-icon-medium" Source="{x:Static cc:AppIcons.NewNodeFile}" />
                     <TextBlock Margin="4,0,0,0" Text="{Binding Name}" />
                 </StackPanel>
             </TreeDataTemplate>
 
             <TreeDataTemplate x:DataType="vm:ArrangerNodeViewModel" DataType="vm:ArrangerNodeViewModel" ItemsSource="{Binding Children}">
                 <StackPanel Orientation="Horizontal">
-                    <StackPanel.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExportArrangerNodeAsCommand}" CommandParameter="{Binding}" Header="Export As..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ImportArrangerNodeFromCommand}" CommandParameter="{Binding}" Header="Import From..." />
-                            <Separator />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
-                        </ContextMenu>
-                    </StackPanel.ContextMenu>
-                    <PathIcon Classes="small vflip" Data="{x:Static cc:AppIcons.NodeArranger}" />
+                    <Image Classes="resource-icon-medium" Source="{x:Static cc:AppIcons.NewNodeArranger}" />
                     <TextBlock Margin="4,0,0,0" Text="{Binding Name}" />
                 </StackPanel>
             </TreeDataTemplate>
 
             <TreeDataTemplate x:DataType="vm:PaletteNodeViewModel" DataType="vm:PaletteNodeViewModel" ItemsSource="{Binding Children}">
                 <StackPanel Orientation="Horizontal">
-                    <StackPanel.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RequestRemoveNodeCommand}" CommandParameter="{Binding}" Header="Remove" />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).RenameNodeCommand}" CommandParameter="{Binding}" Header="Rename..." />
-                            <MenuItem Command="{Binding #_treeView.((vm:ProjectTreeViewModel)DataContext).ExploreResourceCommand}" CommandParameter="{Binding}" Header="Open in Folder" />
-                        </ContextMenu>
-                    </StackPanel.ContextMenu>
-                    <PathIcon Classes="small" Data="{x:Static cc:AppIcons.NodePalette}" />
+                    <Image Classes="resource-icon-medium" Source="{x:Static cc:AppIcons.NewNodePalette}" />
                     <TextBlock Margin="4,0,0,0" Text="{Binding Name}" />
                 </StackPanel>
             </TreeDataTemplate>
