@@ -1,6 +1,7 @@
 <UserControl x:Class="TileShop.UI.Views.ProjectTreeView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:bh="using:TileShop.UI.Behaviors"
     xmlns:cc="https://github.com/stevemonaco/TileShop"
     xmlns:vm="using:TileShop.UI.ViewModels"
     x:DataType="vm:ProjectTreeViewModel">
@@ -54,22 +55,23 @@
         ItemsSource="{Binding Projects}" KeyDown="ProjectTree_KeyDown" SelectedItem="{Binding SelectedNode}">
         <TreeView.Styles>
             <Style x:DataType="vm:ResourceNodeViewModel" Selector="TreeViewItem">
+                <Setter Property="bh:TreeViewItemNodeClassBehavior.IsEnabled" Value="True" />
                 <Setter Property="IsExpanded" Value="{Binding IsExpanded}" />
             </Style>
-            <Style x:DataType="vm:ProjectNodeViewModel" Selector="TreeViewItem">
+            <Style Selector="TreeViewItem.project">
                 <Setter Property="ContextMenu" Value="{StaticResource ProjectContextMenu}" />
             </Style>
-            <Style x:DataType="vm:FolderNodeViewModel" Selector="TreeViewItem">
+            <Style Selector="TreeViewItem.folder">
                 <Setter Property="ContextMenu" Value="{StaticResource FolderContextMenu}" />
             </Style>
-            <Style x:DataType="vm:DataFileNodeViewModel" Selector="TreeViewItem">
+            <Style Selector="TreeViewItem.datafile">
                 <Setter Property="ContextMenu" Value="{StaticResource DataFileContextMenu}" />
             </Style>
-            <Style x:DataType="vm:ArrangerNodeViewModel" Selector="TreeViewItem">
+            <Style Selector="TreeViewItem.arranger">
                 <Setter Property="ContextMenu" Value="{StaticResource ArrangerContextMenu}" />
             </Style>
-            <Style x:DataType="vm:PaletteNodeViewModel" Selector="TreeViewItem">
-                <Setter Property="ContextMenu" Value="{StaticResource ProjectContextMenu}" />
+            <Style Selector="TreeViewItem.palette">
+                <Setter Property="ContextMenu" Value="{StaticResource PaletteContextMenu}" />
             </Style>
         </TreeView.Styles>
         <TreeView.ItemTemplate>
