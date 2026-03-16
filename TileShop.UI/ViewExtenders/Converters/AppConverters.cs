@@ -74,7 +74,8 @@ public static class AppConverters
         new FuncValueConverter<IProjectResource, IImage?>(resource => resource switch
         {
             Palette => AppIcons.NewNodePalette,
-            Arranger => AppIcons.NewNodeArranger,
+            SequentialArranger => AppIcons.NewNodeFile,
+            ScatteredArranger => AppIcons.NewNodeArranger,
             DataSource => AppIcons.NewNodeFile,
             ImageProject => AppIcons.NewNodeProject,
             ResourceFolder => AppIcons.NewNodeFolder,
