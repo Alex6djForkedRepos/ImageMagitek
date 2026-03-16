@@ -536,15 +536,7 @@ public sealed partial class GraphicsEditorViewModel : ResourceEditorBaseViewMode
                 $"'{DisplayName}' has been modified. Save changes before switching modes?");
 
             if (result == PromptResult.Cancel)
-            {
-                // Ensure the View resets the state
-                var current = EditMode;
-                _editMode = newMode;
-                OnPropertyChanged(nameof(EditMode));
-                _editMode = current;
-                OnPropertyChanged(nameof(EditMode));
                 return;
-            }
 
             if (result == PromptResult.Accept)
                 await SaveChangesInternalAsync();

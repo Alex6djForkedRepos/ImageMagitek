@@ -41,21 +41,21 @@
         <ScrollViewer AllowAutoHide="True" Classes="InsetContent">
             <StackPanel Spacing="4">
                 <!--  Edit Mode Selector  -->
-                <StackPanel Classes="toolbar-group">
+                <StackPanel Name="EditModeGroup" Classes="toolbar-group">
                     <RadioButton Classes="tool" Content="View"
                         IsChecked="{Binding EditMode, Mode=OneWay, Converter={x:Static con:AppConverters.EnumToBoolean}, ConverterParameter=View}"
-                        Command="{Binding ChangeEditModeCommand}"
-                        CommandParameter="{x:Static vm:GraphicsEditMode.View}"
+                        Tag="{x:Static vm:GraphicsEditMode.View}"
+                        Click="OnEditModeClick"
                         IsVisible="{Binding CanView}" ToolTip.Tip="View-only mode for adjusting codec properties" />
                     <RadioButton Classes="tool" Content="Arrange"
                         IsChecked="{Binding EditMode, Mode=OneWay, Converter={x:Static con:AppConverters.EnumToBoolean}, ConverterParameter=Arrange}"
-                        Command="{Binding ChangeEditModeCommand}"
-                        CommandParameter="{x:Static vm:GraphicsEditMode.Arrange}"
+                        Tag="{x:Static vm:GraphicsEditMode.Arrange}"
+                        Click="OnEditModeClick"
                         IsVisible="{Binding CanArrange}" ToolTip.Tip="Arrange elements within the arranger" />
                     <RadioButton Classes="tool" Content="Draw"
                         IsChecked="{Binding EditMode, Mode=OneWay, Converter={x:Static con:AppConverters.EnumToBoolean}, ConverterParameter=Draw}"
-                        Command="{Binding ChangeEditModeCommand}"
-                        CommandParameter="{x:Static vm:GraphicsEditMode.Draw}"
+                        Tag="{x:Static vm:GraphicsEditMode.Draw}"
+                        Click="OnEditModeClick"
                         IsVisible="{Binding CanDraw}" ToolTip.Tip="Draw and edit pixels" />
                 </StackPanel>
 

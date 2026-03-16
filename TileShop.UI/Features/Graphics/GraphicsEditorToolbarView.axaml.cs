@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using TileShop.UI.Models;
@@ -15,6 +16,26 @@ public partial class GraphicsEditorToolbarView : UserControl
 
         PaletteSwatchGrid.AddHandler(PointerPressedEvent, OnSwatchPointerPressed, handledEventsToo: true);
         PaletteSwatchGrid.ContextRequested += OnSwatchContextRequested;
+    }
+
+    private async void OnEditModeClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is RadioButton rb && rb.Tag is GraphicsEditMode mode && DataContext is GraphicsEditorViewModel vm)
+        {
+            // Undo the RadioButton's premature toggle before running the command
+            SyncEditModeRadioButtons(vm.EditMode);
+            await vm.ChangeEditModeCommand.ExecuteAsync(mode);
+            SyncEditModeRadioButtons(vm.EditMode);
+        }
+    }
+
+    private void SyncEditModeRadioButtons(GraphicsEditMode mode)
+    {
+        foreach (var child in EditModeGroup.Children)
+        {
+            if (child is RadioButton rb && rb.Tag is GraphicsEditMode rbMode)
+                rb.SetCurrentValue(ToggleButton.IsCheckedProperty, rbMode == mode);
+        }
     }
 
     private void OnSwatchContextRequested(object? sender, ContextRequestedEventArgs e)
