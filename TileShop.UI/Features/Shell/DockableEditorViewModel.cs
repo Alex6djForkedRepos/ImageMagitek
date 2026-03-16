@@ -32,7 +32,7 @@ public partial class DockableEditorViewModel : Document
 
     private void UpdateTitle()
     {
-        Title = _editor.IsModified ? $"{_editor.DisplayName} *" : _editor.DisplayName;
+        Title = _editor.DisplayName;
     }
 
     public override bool OnClose()

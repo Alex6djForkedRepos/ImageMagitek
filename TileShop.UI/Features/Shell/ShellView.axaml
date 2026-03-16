@@ -2,6 +2,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:cc="https://github.com/stevemonaco/TileShop"
+    xmlns:con="using:TileShop.UI.Converters"
     xmlns:idc="using:Dock.Avalonia.Controls"
     xmlns:v="using:TileShop.UI.Views"
     xmlns:vm="using:TileShop.UI.ViewModels"
@@ -23,7 +24,21 @@
                 <Button x:Name="debugLoadButton" Command="{Binding DebugLoadCommand}" Content="Load FF2" IsVisible="False" />
             </StackPanel>
 
-            <idc:DockControl Name="_dock" Grid.Row="1" />
+            <idc:DockControl Name="_dock" Grid.Row="1">
+                <idc:DockControl.Styles>
+                    <Style Selector="DocumentControl">
+                        <Setter Property="HeaderTemplate">
+                            <DataTemplate DataType="vm:DockableEditorViewModel">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <Image Classes="resource-icon-small" Source="{Binding Editor.Resource, Converter={x:Static con:AppConverters.ResourceToTabIcon}}" />
+                                    <TextBlock Text="{Binding Title}" />
+                                    <TextBlock IsVisible="{Binding Editor.IsModified}" Text="*" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </Setter>
+                    </Style>
+                </idc:DockControl.Styles>
+            </idc:DockControl>
 
             <ContentControl Grid.Row="2" Content="{Binding ActiveStatusBar}" />
 

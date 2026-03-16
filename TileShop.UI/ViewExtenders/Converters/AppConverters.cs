@@ -4,7 +4,11 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using ImageMagitek;
+using ImageMagitek.Colors;
+using ImageMagitek.Project;
 using TileShop.Shared.Models;
+using TileShop.UI.Controls;
 using TileShop.UI.Features.Graphics;
 using TileShop.UI.Models;
 using TileShop.UI.ViewModels;
@@ -65,4 +69,15 @@ public static class AppConverters
     public static PaletteModelIndexToSolidColorBrushConverter PaletteIndexToBrush { get; } = new();
     public static SnapModeBooleanConverter SnapModeBoolean { get; } = new();
     public static SwatchSelectionBorderConverter SwatchSelectionBorder { get; } = new();
+
+    public static IValueConverter ResourceToTabIcon { get; } =
+        new FuncValueConverter<IProjectResource, IImage?>(resource => resource switch
+        {
+            Palette => AppIcons.NewNodePalette,
+            Arranger => AppIcons.NewNodeArranger,
+            DataSource => AppIcons.NewNodeFile,
+            ImageProject => AppIcons.NewNodeProject,
+            ResourceFolder => AppIcons.NewNodeFolder,
+            _ => null,
+        });
 }
