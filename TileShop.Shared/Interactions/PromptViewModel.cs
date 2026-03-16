@@ -17,7 +17,7 @@ public class PromptViewModel : RequestBaseViewModel<PromptResult>
         Title = title;
         Message = message;
         
-        TryAcceptCommand = new AsyncRelayCommand(Accept, CanAccept); 
+        TryAcceptCommand = new AsyncRelayCommand(TryAccept, CanAccept);
         TryCancelCommand = new AsyncRelayCommand(TryCancel, CanTryCancel); 
         TryRejectCommand = new AsyncRelayCommand(TryReject, CanTryReject);
     }
@@ -44,6 +44,12 @@ public class PromptViewModel : RequestBaseViewModel<PromptResult>
     public IAsyncRelayCommand TryAcceptCommand { get; }
     public IAsyncRelayCommand TryCancelCommand { get; }
     public IAsyncRelayCommand TryRejectCommand { get; }
+
+    protected virtual Task<bool> TryAccept()
+    {
+        _result = PromptResult.Accept;
+        return Task.FromResult(TryClose());
+    }
 
     protected virtual Task<bool> TryReject()
     {
